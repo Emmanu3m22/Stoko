@@ -1,0 +1,134 @@
+"""
+routers/usuarios.py — CRUD de usuarios del sistema.
+
+Endpoints (solo ADMINISTRADOR puede gestionar usuarios):
+  POST   /api/v1/usuarios/          — Crear usuario
+  GET    /api/v1/usuarios/          — Listar usuarios
+  GET    /api/v1/usuarios/{id}      — Obtener por ID
+  PATCH  /api/v1/usuarios/{id}      — Actualizar
+  DELETE /api/v1/usuarios/{id}      — Desactivar (soft-delete)
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app import models, schemas
+from app.core.deps import get_current_user, require_admin
+from app.core.security import hash_password
+from app.services import auditoria_service
+
+router = APIRouter(prefix="/api/v1/usuarios", tags=["Usuarios"])
+
+
+@router.post("/", response_model=schemas.UsuarioResponse, status_code=201)
+def crear_usuario(
+    datos: schemas.UsuarioCreate,
+    db: Session = Depends(get_db),
+    _admin: models.Usuario = Depends(require_admin),
+):
+    """Crear un nuevo usuario. Solo administradores."""
+    if db.query(models.Usuario).filter(models.Usuario.email == datos.email).first():
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+
+    # Verificar que el rol existe
+    rol = db.query(models.Rol).filter(models.Rol.id_rol == datos.id_rol).first()
+    if not rol:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+
+    usuario = models.Usuario(
+        nombre=datos.nombre,
+        email=datos.email,
+        password=hash_password(datos.password),
+        id_rol=datos.id_rol,
+    )
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+
+    auditoria_service.registrar(
+        db,
+        operacion="crear_usuario",
+        detalles=f"Nuevo usuario creado: {usuario.email}",
+        id_usuario=_admin.id_usuario,
+    )
+    return usuario
+
+
+@router.get("/", response_model=list[schemas.UsuarioResponse])
+def listar_usuarios(
+    db: Session = Depends(get_db),
+    _admin: models.Usuario = Depends(require_admin),
+):
+    """Listar todos los usuarios. Solo administradores."""
+    return db.query(models.Usuario).all()
+
+
+@router.get("/{usuario_id}", response_model=schemas.UsuarioResponse)
+def obtener_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user),
+):
+    """Obtener usuario por ID. Administradores pueden ver cualquiera; cajeros solo su perfil."""
+    if current_user.rol.nombre.lower() != "administrador" and current_user.id_usuario != usuario_id:
+        raise HTTPException(status_code=403, detail="Sin permisos para ver este usuario")
+
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return usuario
+
+
+@router.patch("/{usuario_id}", response_model=schemas.UsuarioResponse)
+def actualizar_usuario(
+    usuario_id: int,
+    datos: schemas.UsuarioUpdate,
+    db: Session = Depends(get_db),
+    _admin: models.Usuario = Depends(require_admin),
+):
+    """Actualizar un usuario parcialmente. Solo administradores."""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    updates = datos.model_dump(exclude_unset=True)
+    if "password" in updates:
+        updates["password"] = hash_password(updates["password"])
+
+    for campo, valor in updates.items():
+        setattr(usuario, campo, valor)
+
+    db.commit()
+    db.refresh(usuario)
+
+    auditoria_service.registrar(
+        db,
+        operacion="editar_usuario",
+        detalles=f"Usuario {usuario.email} actualizado",
+        id_usuario=_admin.id_usuario,
+    )
+    return usuario
+
+
+@router.delete("/{usuario_id}", response_model=schemas.MensajeResponse)
+def desactivar_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    _admin: models.Usuario = Depends(require_admin),
+):
+    """Desactivar usuario (soft-delete). Solo administradores."""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    usuario.activo = False
+    db.commit()
+
+    auditoria_service.registrar(
+        db,
+        operacion="desactivar_usuario",
+        detalles=f"Usuario {usuario.email} desactivado",
+        id_usuario=_admin.id_usuario,
+    )
+    return {"mensaje": f"Usuario '{usuario.nombre}' desactivado correctamente"}

@@ -1,1 +1,3 @@
-# Routers de la API de Stoko
+"""
+routers/__init__.py
+"""

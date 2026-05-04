@@ -1,8 +1,7 @@
 """
-Configuración de la base de datos SQLite con SQLAlchemy.
+database.py — Configuración de la base de datos SQLite con SQLAlchemy.
 
-Este módulo establece la conexión a la base de datos, define la sesión
-y provee la dependencia `get_db` para inyección en los endpoints de FastAPI.
+Establece la conexión, la sesión y la dependencia `get_db` para inyección en FastAPI.
 """
 
 import os
@@ -15,7 +14,7 @@ DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'stoko.db')}"
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},  # Necesario para SQLite con FastAPI
+    connect_args={"check_same_thread": False},  # Requerido para SQLite con FastAPI
     echo=False,
 )
 
@@ -26,7 +25,7 @@ Base = declarative_base()
 
 def get_db():
     """
-    Dependency que provee una sesión de base de datos por request.
+    Dependencia que provee una sesión de BD por request.
     Se cierra automáticamente al finalizar el request.
     """
     db = SessionLocal()

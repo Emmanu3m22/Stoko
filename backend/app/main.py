@@ -1,156 +1,216 @@
 """
-Stoko API — Rutas simuladas (Mock) con datos en memoria.
+main.py — Punto de entrada de la API Stoko.
 
-Esta versión usa una lista de Python como "base de datos" temporal.
-El frontend React consume los mismos endpoints y JSON que usaría
-con SQLite, así que cuando se conecte la BD real, React no cambia nada.
+Conecta la BD real (SQLite), registra todos los routers y siembra
+datos iniciales (roles, admin, productos de ejemplo) en el primer arranque.
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional
 
+from app.database import engine, SessionLocal
+from app import models
 
-# --- Inicializamos la API ---
-app = FastAPI(
-    title="Stoko API",
-    description="API para el sistema de inventarios y ventas Stoko",
-    version="1.0.0",
+# Importar todos los modelos para que SQLAlchemy los registre
+from app.models import (
+    Rol, Usuario, Categoria, Producto,
+    Venta, DetalleVenta, CorteCaja, Incidencia, LogAuditoria
 )
 
-# --- CORS Middleware ---
-# Permite que el frontend React (Vite) consuma la API
+# ─── Crear todas las tablas ────────────────────────────────────────────────────
+models.Base.metadata.create_all(bind=engine)
+
+# ─── Crear la aplicación ──────────────────────────────────────────────────────
+app = FastAPI(
+    title="Stoko API",
+    description=(
+        "API REST para el Sistema de Inventarios y Punto de Venta STOKO. "
+        "Gestiona productos, ventas, cortes de caja, incidencias y auditorías."
+    ),
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+# ─── CORS ─────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ─── Registrar routers ────────────────────────────────────────────────────────
+from app.routers import auth, usuarios, categorias, productos, ventas, cortes, incidencias, auditorias
 
-# =====================================================
-# 1. CONTRATO DE DATOS (Pydantic)
-# =====================================================
-class Producto(BaseModel):
-    id: int
-    codigo_barras: str
-    nombre: str
-    categoria: str
-    precio_unitario: float
-    stock_actual: int
-
-
-class ProductoCreate(BaseModel):
-    """Para crear producto sin enviar ID (se auto-genera)."""
-    codigo_barras: str
-    nombre: str
-    categoria: str
-    precio_unitario: float
-    stock_actual: int
+app.include_router(auth.router)
+app.include_router(usuarios.router)
+app.include_router(categorias.router)
+app.include_router(productos.router)
+app.include_router(ventas.router)
+app.include_router(cortes.router)
+app.include_router(incidencias.router)
+app.include_router(auditorias.router)
 
 
-class ProductoUpdate(BaseModel):
-    """Para actualización parcial — todos los campos opcionales."""
-    codigo_barras: Optional[str] = None
-    nombre: Optional[str] = None
-    categoria: Optional[str] = None
-    precio_unitario: Optional[float] = None
-    stock_actual: Optional[int] = None
-
-
-# =====================================================
-# 2. "BASE DE DATOS" EN MEMORIA
-# =====================================================
-db_productos: List[Producto] = [
-    Producto(
-        id=1,
-        codigo_barras="STK-0024-X",
-        nombre="Reloj Cronógrafo Sovereign A",
-        categoria="Relojería",
-        precio_unitario=1240.0,
-        stock_actual=42,
-    ),
-    Producto(
-        id=2,
-        codigo_barras="STK-0037-B",
-        nombre="Pulsera Titanium Edge",
-        categoria="Accesorios",
-        precio_unitario=580.0,
-        stock_actual=15,
-    ),
-    Producto(
-        id=3,
-        codigo_barras="STK-0051-C",
-        nombre="Gafas Polarizadas Onyx",
-        categoria="Óptica",
-        precio_unitario=890.0,
-        stock_actual=8,
-    ),
-]
-
-# Contador para auto-generar IDs
-_next_id = max(p.id for p in db_productos) + 1
-
-
-# =====================================================
-# 3. ENDPOINTS
-# =====================================================
-
+# ─── Endpoint raíz ────────────────────────────────────────────────────────────
 @app.get("/", tags=["Root"])
-def read_root():
-    """Endpoint raíz de bienvenida."""
-    return {"message": "Bienvenido a Stoko API", "docs": "/docs"}
+def root():
+    return {
+        "mensaje": "Bienvenido a Stoko API v2.0",
+        "documentacion": "/docs",
+        "redoc": "/redoc",
+    }
 
 
-@app.get("/productos/", response_model=List[Producto], tags=["Productos"])
-def obtener_productos():
-    """Obtener todos los productos del inventario."""
-    return db_productos
+# ─── Endpoint de compatibilidad con el frontend (mock → real) ─────────────────
+# El frontend actualmente llama a GET /productos/ sin prefijo /api/v1.
+# Este alias redirige para no romper el frontend mientras se migra.
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app import schemas
+
+@app.get("/productos/", response_model=list[schemas.ProductoResponse], tags=["Compatibilidad"])
+def productos_compat(db: Session = Depends(get_db)):
+    """
+    Alias de compatibilidad para el frontend React que consume /productos/ sin prefijo.
+    Devuelve todos los productos sin autenticación (modo público de solo lectura).
+    """
+    return db.query(models.Producto).order_by(models.Producto.nombre).all()
+
+@app.delete("/productos/{producto_id}", response_model=schemas.MensajeResponse, tags=["Compatibilidad"])
+def eliminar_producto_compat(producto_id: int, db: Session = Depends(get_db)):
+    """Alias de compatibilidad — eliminar producto sin prefijo."""
+    producto = db.query(models.Producto).filter(
+        models.Producto.id_producto == producto_id
+    ).first()
+    if not producto:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    nombre = producto.nombre
+    db.delete(producto)
+    db.commit()
+    return {"mensaje": f"Producto '{nombre}' eliminado"}
+
+@app.post("/productos/", response_model=schemas.ProductoResponse, status_code=201, tags=["Compatibilidad"])
+def crear_producto_compat(datos: schemas.ProductoCreate, db: Session = Depends(get_db)):
+    """Alias de compatibilidad — crear producto sin prefijo."""
+    from fastapi import HTTPException
+    if db.query(models.Producto).filter(
+        models.Producto.codigo_barras == datos.codigo_barras
+    ).first():
+        raise HTTPException(status_code=400, detail="Código de barras duplicado")
+    producto = models.Producto(**datos.model_dump())
+    db.add(producto)
+    db.commit()
+    db.refresh(producto)
+    return producto
 
 
-@app.get("/productos/{producto_id}", response_model=Producto, tags=["Productos"])
-def obtener_producto(producto_id: int):
-    """Obtener un producto por su ID."""
-    for producto in db_productos:
-        if producto.id == producto_id:
-            return producto
-    raise HTTPException(status_code=404, detail="Producto no encontrado")
+# ─── Seed inicial (se ejecuta una vez al arrancar) ────────────────────────────
+
+def _seed_database():
+    """
+    Siembra datos iniciales si la BD está vacía:
+    - Roles: administrador, cajero
+    - Usuario admin por defecto
+    - Categorías y productos de ejemplo
+    """
+    from app.core.security import hash_password
+
+    db = SessionLocal()
+    try:
+        # ── Roles ──────────────────────────────────────────────────────
+        if db.query(Rol).count() == 0:
+            roles = [
+                Rol(nombre="administrador"),
+                Rol(nombre="cajero"),
+            ]
+            db.add_all(roles)
+            db.commit()
+            print("[Seed] Roles creados: administrador, cajero")
+
+        # ── Usuario administrador ──────────────────────────────────────
+        if db.query(Usuario).count() == 0:
+            rol_admin = db.query(Rol).filter(Rol.nombre == "administrador").first()
+            admin = Usuario(
+                nombre="Administrador Stoko",
+                email="admin@stoko.com",
+                password=hash_password("admin1234"),
+                id_rol=rol_admin.id_rol,
+                activo=True,
+            )
+            db.add(admin)
+            db.commit()
+            print("[Seed] Usuario admin creado → email: admin@stoko.com | pass: admin1234")
+
+        # ── Categorías ────────────────────────────────────────────────
+        if db.query(Categoria).count() == 0:
+            cats = [
+                Categoria(nombre="Relojería"),
+                Categoria(nombre="Accesorios"),
+                Categoria(nombre="Óptica"),
+                Categoria(nombre="Calzado Deportivo"),
+                Categoria(nombre="General"),
+            ]
+            db.add_all(cats)
+            db.commit()
+            print("[Seed] Categorías creadas")
+
+        # ── Productos de ejemplo ──────────────────────────────────────
+        if db.query(Producto).count() == 0:
+            cat_map = {c.nombre: c.id_categoria for c in db.query(Categoria).all()}
+            productos = [
+                Producto(
+                    nombre="Reloj Cronógrafo Sovereign A",
+                    codigo_barras="STK-0024-X",
+                    precio_unitario=1240.0,
+                    stock_actual=42,
+                    stock_minimo=5,
+                    id_categoria=cat_map.get("Relojería"),
+                ),
+                Producto(
+                    nombre="Pulsera Titanium Edge",
+                    codigo_barras="STK-0037-B",
+                    precio_unitario=580.0,
+                    stock_actual=15,
+                    stock_minimo=5,
+                    id_categoria=cat_map.get("Accesorios"),
+                ),
+                Producto(
+                    nombre="Gafas Polarizadas Onyx",
+                    codigo_barras="STK-0051-C",
+                    precio_unitario=890.0,
+                    stock_actual=8,
+                    stock_minimo=10,
+                    id_categoria=cat_map.get("Óptica"),
+                ),
+                Producto(
+                    nombre="Zapatillas Running Pro",
+                    codigo_barras="ZAP-RUN-001",
+                    precio_unitario=850.5,
+                    stock_actual=3,
+                    stock_minimo=5,
+                    id_categoria=cat_map.get("Calzado Deportivo"),
+                ),
+            ]
+            db.add_all(productos)
+            db.commit()
+            print("[Seed] Productos de ejemplo creados (4 productos)")
+
+    except Exception as e:
+        print(f"[Seed] Error durante el seed: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 
-@app.post("/productos/", response_model=Producto, status_code=201, tags=["Productos"])
-def crear_producto(datos: ProductoCreate):
-    """Crear un nuevo producto (el ID se auto-genera)."""
-    global _next_id
-    nuevo = Producto(id=_next_id, **datos.model_dump())
-    _next_id += 1
-    db_productos.append(nuevo)
-    return nuevo
-
-
-@app.patch("/productos/{producto_id}", response_model=Producto, tags=["Productos"])
-def actualizar_producto(producto_id: int, datos: ProductoUpdate):
-    """Actualizar parcialmente un producto."""
-    for i, producto in enumerate(db_productos):
-        if producto.id == producto_id:
-            datos_actualizados = datos.model_dump(exclude_unset=True)
-            producto_dict = producto.model_dump()
-            producto_dict.update(datos_actualizados)
-            db_productos[i] = Producto(**producto_dict)
-            return db_productos[i]
-    raise HTTPException(status_code=404, detail="Producto no encontrado")
-
-
-@app.delete("/productos/{producto_id}", status_code=204, tags=["Productos"])
-def eliminar_producto(producto_id: int):
-    """Eliminar un producto del inventario."""
-    for i, producto in enumerate(db_productos):
-        if producto.id == producto_id:
-            db_productos.pop(i)
-            return
-    raise HTTPException(status_code=404, detail="Producto no encontrado")
+# ─── Ejecutar seed al iniciar ─────────────────────────────────────────────────
+_seed_database()
