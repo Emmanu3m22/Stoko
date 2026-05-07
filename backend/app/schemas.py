@@ -6,7 +6,7 @@ Organizado por recurso:
   Ventas, CortesCaja, Incidencias, LogAuditorias
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field, EmailStr
 
@@ -233,6 +233,21 @@ class AuditoriaResponse(BaseModel):
     detalles:     Optional[str]
     id_usuario:   Optional[int]
     model_config  = {"from_attributes": True}
+
+
+# ─────────────────────────────────────────────────────────────
+# REPORTES / IA
+# ─────────────────────────────────────────────────────────────
+
+class InsightsRequest(BaseModel):
+    fecha_inicio: date
+    fecha_fin:    date
+
+
+class InsightsResponse(BaseModel):
+    fecha_inicio: date
+    fecha_fin:    date
+    insights:     str
 
 
 # ─────────────────────────────────────────────────────────────

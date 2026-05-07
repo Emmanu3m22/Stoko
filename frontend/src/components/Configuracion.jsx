@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import GestionCategorias from './GestionCategorias';
 
-export default function Configuracion({ mostrarNotificacion }) {
+export default function Configuracion({ sesion, mostrarNotificacion }) {
   const [pestaña, setPestaña] = useState('perfil');
+  const esAdministrador = sesion?.usuario?.rol?.toLowerCase() === 'administrador';
   const [usuarios, setUsuarios] = useState([
     { nombre: "Alejandro Mendoza", rol: "ADMINISTRADOR", estado: "● Activo", colorRol: "bg-purple-100 text-purple-700", colorEstado: "text-green-600" },
     { nombre: "Beatriz Romero", rol: "GERENTE", estado: "● Activo", colorRol: "bg-blue-100 text-blue-700", colorEstado: "text-green-600" },
@@ -48,6 +50,14 @@ export default function Configuracion({ mostrarNotificacion }) {
           >
             Gestión de Usuarios
           </button>
+          {esAdministrador && (
+            <button
+              onClick={() => setPestaña('categorias')}
+              className={`font-semibold pb-2 ${pestaña === 'categorias' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+            >
+              Categorías
+            </button>
+          )}
         </div>
       </div>
 
@@ -130,6 +140,10 @@ export default function Configuracion({ mostrarNotificacion }) {
             </button>
           </div>
         </div>
+      )}
+
+      {pestaña === 'categorias' && esAdministrador && (
+        <GestionCategorias sesion={sesion} mostrarNotificacion={mostrarNotificacion} />
       )}
     </div>
   );

@@ -1,15 +1,27 @@
 import { useState, useRef } from 'react';
+import HistorialVentas from './HistorialVentas';
+import { authFetch } from '../lib/api';
 // Productos vienen como prop desde HubPrincipal (fuente única de datos).
 
 const IVA = 0.16;
 const fmt = (n) =>
   n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
 
-export default function RegistroVenta({ productos = [], mostrarNotificacion }) {
+async function leerRespuesta(res) {
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.detail || 'No se pudo completar la operación.');
+  }
+  return data;
+}
+
+export default function RegistroVenta({ productos = [], sesion, onVentaRegistrada, mostrarNotificacion }) {
   const [carrito, setCarrito]     = useState([]);
   const [busqueda, setBusqueda]   = useState('');
   const [sugerencias, setSugerencias] = useState([]);
-  const [finalizado, setFinalizado]   = useState(false);
+  const [ventaRegistrada, setVentaRegistrada] = useState(null);
+  const [procesando, setProcesando] = useState(false);
+  const [vista, setVista] = useState('venta');
   const inputRef = useRef(null);
 
   // ── Búsqueda de productos ──────────────────────────────────────────────────
@@ -34,15 +46,7 @@ export default function RegistroVenta({ productos = [], mostrarNotificacion }) {
         agregarProducto(prodCatalogo);
         mostrarNotificacion(`Escaneado: ${prodCatalogo.nombre}`, 'success');
       } else {
-        const precioAleatorio = Math.floor(Math.random() * 500) + 50; 
-        const nuevoItem = {
-          id: Date.now(),
-          nombre: busqueda,
-          precio_unitario: precioAleatorio,
-          codigo_barras: `GEN-${Date.now()}`
-        };
-        agregarProducto(nuevoItem);
-        mostrarNotificacion(`Agregado genérico: ${busqueda}`, 'success');
+        mostrarNotificacion(`Producto no encontrado: ${busqueda}`, 'error');
       }
     }
   };
@@ -88,8 +92,37 @@ export default function RegistroVenta({ productos = [], mostrarNotificacion }) {
   const total    = subtotal + impuesto;
   const numItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
 
+  const finalizarVenta = async () => {
+    if (carrito.length === 0 || procesando) return;
+
+    setProcesando(true);
+    try {
+      const res = await authFetch('/api/v1/ventas/', sesion, {
+        method: 'POST',
+        body: JSON.stringify({
+          metodo_pago: 'efectivo',
+          items: carrito.map((item) => ({
+            id_producto: item.id,
+            cantidad: item.cantidad,
+          })),
+        }),
+      });
+      const venta = await leerRespuesta(res);
+      setVentaRegistrada(venta);
+      setCarrito([]);
+      setBusqueda('');
+      setSugerencias([]);
+      mostrarNotificacion(`Venta #${venta.id_venta} registrada por ${fmt(venta.total)}.`);
+      await onVentaRegistrada?.();
+    } catch (err) {
+      mostrarNotificacion(err.message || 'No se pudo registrar la venta.', 'error');
+    } finally {
+      setProcesando(false);
+    }
+  };
+
   // ── Pantalla de confirmación ───────────────────────────────────────────────
-  if (finalizado) {
+  if (ventaRegistrada) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-24 text-center">
         <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
@@ -98,10 +131,10 @@ export default function RegistroVenta({ productos = [], mostrarNotificacion }) {
           </svg>
         </div>
         <h2 className="text-2xl font-black text-gray-900 mb-2">¡Venta registrada!</h2>
-        <p className="text-gray-500 text-sm mb-2">Total cobrado: <span className="font-bold text-gray-900">{fmt(total)}</span></p>
-        <p className="text-gray-400 text-xs mb-8">Folio #{String(Math.floor(Math.random() * 90000) + 10000)}</p>
+        <p className="text-gray-500 text-sm mb-2">Total cobrado: <span className="font-bold text-gray-900">{fmt(ventaRegistrada.total)}</span></p>
+        <p className="text-gray-400 text-xs mb-8">Folio #{String(ventaRegistrada.id_venta).padStart(5, '0')}</p>
         <button
-          onClick={() => { setCarrito([]); setFinalizado(false); }}
+          onClick={() => { setVentaRegistrada(null); setVista('venta'); }}
           className="bg-[#4169E1] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-[#3155c7] transition-colors shadow-lg shadow-blue-200"
         >
           Nueva Venta
@@ -111,7 +144,28 @@ export default function RegistroVenta({ productos = [], mostrarNotificacion }) {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-full">
+    <div className="space-y-4 h-full">
+      <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setVista('venta')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${vista === 'venta' ? 'bg-[#4169E1] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+        >
+          Nueva venta
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista('historial')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${vista === 'historial' ? 'bg-[#4169E1] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+        >
+          Historial de ventas
+        </button>
+      </div>
+
+      {vista === 'historial' ? (
+        <HistorialVentas sesion={sesion} mostrarNotificacion={mostrarNotificacion} />
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-6 h-full">
 
       {/* ── Panel izquierdo: buscador + carrito ───────────────────────── */}
       <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
@@ -300,13 +354,15 @@ export default function RegistroVenta({ productos = [], mostrarNotificacion }) {
             }
           }}
           disabled={carrito.length === 0}
+          onClick={finalizarVenta}
+          disabled={carrito.length === 0 || procesando}
           className="w-full bg-[#4169E1] hover:bg-[#3155c7] disabled:opacity-40 disabled:cursor-not-allowed
                      text-white font-black py-4 rounded-xl shadow-lg shadow-blue-200/50 transition-all active:scale-95 text-sm flex items-center justify-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Finalizar Venta
+          {procesando ? 'Registrando...' : 'Finalizar Venta'}
           <span className="text-blue-300 text-xs font-normal ml-1">F12</span>
         </button>
 
@@ -315,7 +371,10 @@ export default function RegistroVenta({ productos = [], mostrarNotificacion }) {
           <button className="bg-white border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-sm">
             Pausar
           </button>
-          <button className="bg-white border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-sm">
+          <button
+            onClick={() => setVista('historial')}
+            className="bg-white border border-gray-200 text-gray-600 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+          >
             Último
           </button>
         </div>
@@ -327,6 +386,8 @@ export default function RegistroVenta({ productos = [], mostrarNotificacion }) {
           Cancelar Transacción
         </button>
       </div>
+        </div>
+      )}
     </div>
   );
 }

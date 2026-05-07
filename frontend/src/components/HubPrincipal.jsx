@@ -1,15 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
+import { authFetch } from '../lib/api';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
-const API_URL   = 'http://localhost:8000';
 const STOCK_MIN = 10;
 
 // PRODUCTOS_MOCK eliminado — el sistema ahora es 100% real.
 
+
+const normalizarProducto = (producto) => ({
+  ...producto,
+  id: producto.id ?? producto.id_producto,
+  categoria:
+    typeof producto.categoria === 'string'
+      ? producto.categoria
+      : producto.categoria?.nombre || 'Sin categoría',
+});
 
 // ── Íconos SVG inline ────────────────────────────────────────────────────────
 const Ico = ({ d, className = 'w-5 h-5' }) => (
@@ -40,7 +49,7 @@ const MENU = [
 ];
 
 // ── Dashboard (usa datos reales) ─────────────────────────────────────────────
-function Dashboard({ productos, cargando, onNavegar }) {
+function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
   const total        = productos.length;
   const stockBajos   = productos.filter((p) => p.stock_actual < STOCK_MIN);
   const valorInv     = productos.reduce((a, p) => a + p.precio_unitario * p.stock_actual, 0);
@@ -176,21 +185,12 @@ function Dashboard({ productos, cargando, onNavegar }) {
   );
 }
 
-function Proximamente({ seccion }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-32 text-center">
-      <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4 text-gray-400">
-        <Ico d={D.cog} />
-      </div>
-      <h2 className="text-xl font-bold text-gray-700 mb-2">{seccion}</h2>
-      <p className="text-gray-400 text-sm">Este módulo estará disponible en la siguiente iteración.</p>
-    </div>
-  );
-}
-
 // ── Componente principal ─────────────────────────────────────────────────────
-export default function HubPrincipal({ onLogout }) {
+export default function HubPrincipal({ sesion, onLogout }) {
   const [menuActivo, setMenuActivo] = useState('dashboard');
+  const usuario = sesion?.usuario;
+  const esAdministrador = usuario?.rol?.toLowerCase() === 'administrador';
+  const menuVisible = MENU.filter((item) => item.id !== 'config' || esAdministrador);
 
   // ── Sistema de notificaciones Toast ────────────────────────────────────────
   const [toast, setToast] = useState({ visible: false, mensaje: '', tipo: '' });
@@ -204,6 +204,20 @@ export default function HubPrincipal({ onLogout }) {
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargando,  setCargando]  = useState(true);
+
+  const fetchProductos = useCallback(async () => {
+    setCargando(true);
+    try {
+      const res = await authFetch('/api/v1/productos/', sesion);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setProductos(data.map(normalizarProducto));
+    } catch {
+      setProductos(PRODUCTOS_MOCK);
+    } finally {
+      setCargando(false);
+    }
+  }, [sesion]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -224,6 +238,22 @@ export default function HubPrincipal({ onLogout }) {
     };
     fetchData();
   }, []);
+    fetchProductos();
+  }, [fetchProductos]);
+
+  const fetchCategorias = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/v1/categorias/', sesion);
+      if (!res.ok) throw new Error();
+      setCategorias(await res.json());
+    } catch {
+      setCategorias([]);
+    }
+  }, [sesion]);
+
+  useEffect(() => {
+    fetchCategorias();
+  }, [fetchCategorias]);
 
   // Eliminar producto real de la BD
   const eliminarProducto = async (id) => {
@@ -359,6 +389,40 @@ export default function HubPrincipal({ onLogout }) {
       mostrarNotificacion(`Producto "${actualizado.nombre}" actualizado.`);
     } catch {
       mostrarNotificacion('Error al actualizar el producto.', 'error');
+    try {
+      const res = await authFetch(`/api/v1/productos/${id}`, sesion, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'No se pudo eliminar el producto.');
+      setProductos((prev) => prev.filter((p) => p.id !== id));
+      mostrarNotificacion('Producto eliminado del inventario.', 'error');
+    } catch (err) {
+      mostrarNotificacion(err.message || 'No se pudo eliminar el producto.', 'error');
+    }
+  };
+
+  const agregarProducto = async (prod) => {
+    try {
+      const payload = {
+        nombre: prod.nombre.trim(),
+        codigo_barras: prod.codigo.trim(),
+        precio_unitario: Number(prod.precio),
+        stock_actual: Number.parseInt(prod.stock, 10),
+        stock_minimo: Number.parseInt(prod.stock_minimo || '5', 10),
+        id_categoria: prod.id_categoria ? Number(prod.id_categoria) : null,
+      };
+      const res = await authFetch('/api/v1/productos/', sesion, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'No se pudo crear el producto.');
+      const nuevo = normalizarProducto(data);
+      setProductos((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      mostrarNotificacion(`Producto "${nuevo.nombre}" agregado exitosamente al catálogo.`);
+      return true;
+    } catch (err) {
+      mostrarNotificacion(err.message || 'No se pudo crear el producto.', 'error');
+      return false;
     }
   };
 
@@ -382,6 +446,10 @@ export default function HubPrincipal({ onLogout }) {
       case 'ventas':    return <RegistroVenta productos={productos} mostrarNotificacion={mostrarNotificacion} />;
       case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} />;
       case 'config':    return <Configuracion mostrarNotificacion={mostrarNotificacion} />;
+      case 'catalogo':  return <ListaProductos productos={productos} categorias={categorias} cargando={cargando} onEliminar={eliminarProducto} onAgregar={agregarProducto} mostrarNotificacion={mostrarNotificacion} />;
+      case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} onVentaRegistrada={fetchProductos} mostrarNotificacion={mostrarNotificacion} />;
+      case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} sesion={sesion} />;
+      case 'config':    return <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
       default:          return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
     }
   };
@@ -413,7 +481,7 @@ export default function HubPrincipal({ onLogout }) {
 
         <nav className="flex-1 px-3 py-4 space-y-1">
           <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest px-3 mb-3">Principal</p>
-          {MENU.map(({ id, label, icon }) => {
+          {menuVisible.map(({ id, label, icon }) => {
             const activo = menuActivo === id;
             return (
               <button key={id} onClick={() => setMenuActivo(id)}
@@ -433,8 +501,8 @@ export default function HubPrincipal({ onLogout }) {
               <span className="text-[#4169E1] font-bold text-sm">A</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-semibold truncate">Admin User</p>
-              <p className="text-gray-500 text-xs truncate">admin@stoko.com</p>
+              <p className="text-white text-sm font-semibold truncate">{usuario?.nombre || 'Usuario'}</p>
+              <p className="text-gray-500 text-xs truncate">{usuario?.rol || 'Sin rol'}</p>
             </div>
           </div>
           <button onClick={onLogout}
@@ -449,7 +517,7 @@ export default function HubPrincipal({ onLogout }) {
       <main className="flex-1 overflow-y-auto">
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-            {MENU.find((m) => m.id === menuActivo)?.label}
+            {menuVisible.find((m) => m.id === menuActivo)?.label || 'Dashboard'}
           </p>
           <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
