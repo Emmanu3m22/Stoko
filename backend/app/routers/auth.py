@@ -33,10 +33,17 @@ def login(
         models.Usuario.activo == True,
     ).first()
 
-    if not usuario or not verify_password(form_data.password, usuario.password):
+    if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas",
+            detail="Usuario no registrado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(form_data.password, usuario.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Contraseña incorrecta",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

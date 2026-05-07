@@ -3,9 +3,9 @@ import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
+import { API_URL } from '../lib/api';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
-const API_URL   = 'http://localhost:8000';
 const STOCK_MIN = 10;
 
 const PRODUCTOS_MOCK = [
@@ -193,8 +193,9 @@ function Proximamente({ seccion }) {
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
-export default function HubPrincipal({ onLogout }) {
+export default function HubPrincipal({ sesion, onLogout }) {
   const [menuActivo, setMenuActivo] = useState('dashboard');
+  const usuario = sesion?.usuario;
 
   // ── Sistema de notificaciones Toast ────────────────────────────────────────
   const [toast, setToast] = useState({ visible: false, mensaje: '', tipo: '' });
@@ -302,8 +303,8 @@ export default function HubPrincipal({ onLogout }) {
               <span className="text-[#4169E1] font-bold text-sm">A</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-semibold truncate">Admin User</p>
-              <p className="text-gray-500 text-xs truncate">admin@stoko.com</p>
+              <p className="text-white text-sm font-semibold truncate">{usuario?.nombre || 'Usuario'}</p>
+              <p className="text-gray-500 text-xs truncate">{usuario?.rol || 'Sin rol'}</p>
             </div>
           </div>
           <button onClick={onLogout}

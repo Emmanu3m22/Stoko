@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { iniciarSesion } from '../lib/api';
 
 // Credenciales de demo para la presentación
 const DEMO_EMAIL    = 'admin@stoko.com';
-const DEMO_PASSWORD = 'stoko2025';
+const DEMO_PASSWORD = 'admin1234';
 
 export default function Login({ onLoginExitoso }) {
   const [email, setEmail]       = useState('');
@@ -16,14 +17,11 @@ export default function Login({ onLoginExitoso }) {
     setError('');
     setCargando(true);
 
-    // Simulamos latencia de red (500 ms) para que parezca real
-    await new Promise((r) => setTimeout(r, 600));
-
-    // Validación mock — cualquier email + contraseña no vacíos pasan
-    if (email.trim() && password.trim()) {
-      onLoginExitoso?.();
-    } else {
-      setError('Credenciales inválidas. Intenta de nuevo.');
+    try {
+      const sesion = await iniciarSesion(email.trim(), password);
+      onLoginExitoso?.(sesion);
+    } catch (err) {
+      setError(err.message || 'No se pudo iniciar sesión.');
       setCargando(false);
     }
   };
