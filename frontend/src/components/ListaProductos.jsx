@@ -4,7 +4,7 @@ import { useState } from 'react';
 // Este componente solo recibe props y renderiza.
 const STOCK_BAJO = 10;
 
-export default function ListaProductos({ productos = [], categorias = [], cargando = false, onEliminar, onAgregar, mostrarNotificacion }) {
+export default function ListaProductos({ productos = [], categorias = [], cargando = false, onEliminar, onAgregar }) {
   // Estado para la ventana modal
   const [mostrarModal, setMostrarModal] = useState(false);
   const [form, setForm] = useState({ nombre: '', id_categoria: '', precio: '', stock: '', stock_minimo: '5', codigo: '' });

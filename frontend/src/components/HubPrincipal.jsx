@@ -53,7 +53,7 @@ const MENU = [
 ];
 
 // ── Dashboard (usa datos reales) ─────────────────────────────────────────────
-function Dashboard({ productos, cargando, onNavegar }) {
+function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
   const total        = productos.length;
   const stockBajos   = productos.filter((p) => p.stock_actual < STOCK_MIN);
   const valorInv     = productos.reduce((a, p) => a + p.precio_unitario * p.stock_actual, 0);
@@ -185,18 +185,6 @@ function Dashboard({ productos, cargando, onNavegar }) {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function Proximamente({ seccion }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-32 text-center">
-      <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4 text-gray-400">
-        <Ico d={D.cog} />
-      </div>
-      <h2 className="text-xl font-bold text-gray-700 mb-2">{seccion}</h2>
-      <p className="text-gray-400 text-sm">Este módulo estará disponible en la siguiente iteración.</p>
     </div>
   );
 }

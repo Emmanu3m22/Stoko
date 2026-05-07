@@ -1,11 +1,12 @@
-﻿{
+{
   "name": "Stoko Inventarios",
   "short_name": "Stoko",
   "description": "Sistema de inventarios y ventas Stoko",
-  "start_url": "/?source=pwa",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "theme_color": "#4169E1",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -16,6 +17,12 @@
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
