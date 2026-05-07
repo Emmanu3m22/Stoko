@@ -4,6 +4,11 @@ main.py — Punto de entrada de la API Stoko.
 Conecta la BD real (SQLite), registra todos los routers y siembra
 datos iniciales (roles, admin, productos de ejemplo) en el primer arranque.
 """
+import sys
+import os
+
+# Agregar el directorio 'stoko/backend' al PYTHONPATH
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
