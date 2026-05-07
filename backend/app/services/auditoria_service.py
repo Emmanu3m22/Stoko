@@ -17,11 +17,12 @@ def registrar(
     operacion: str,
     detalles: Optional[str] = None,
     id_usuario: Optional[int] = None,
+    auto_commit: bool = True,
 ) -> models.LogAuditoria:
     """
     Crea una entrada en el log de auditorías.
-    La llamada NO hace commit — el commit es responsabilidad del router llamante
-    o se puede dejar que SQLAlchemy lo incluya en la transacción actual.
+    Por defecto persiste el log inmediatamente porque los routers registran la
+    auditoría después de confirmar la operación principal.
     """
     log = models.LogAuditoria(
         operacion=operacion,
@@ -32,6 +33,9 @@ def registrar(
     # Flush para que el log quede dentro de la transacción actual
     try:
         db.flush()
+        if auto_commit:
+            db.commit()
     except Exception:
+        db.rollback()
         pass  # Si la sesión ya fue cerrada o hay un error, no bloquear
     return log

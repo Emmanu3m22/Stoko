@@ -17,8 +17,6 @@ Endpoints:
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from datetime import datetime
-
 from app.database import get_db
 from app import models, schemas
 from app.core.deps import get_current_user, require_admin
@@ -46,6 +44,17 @@ def registrar_venta(
     # Validar y construir detalles
     detalles = []
     subtotal = 0.0
+    corte = None
+
+    if datos.id_corte:
+        corte = db.query(models.CorteCaja).filter(
+            models.CorteCaja.id_corte == datos.id_corte,
+            models.CorteCaja.estado == "abierto",
+        ).first()
+        if not corte:
+            raise HTTPException(status_code=400, detail="El corte indicado no existe o está cerrado")
+        if corte.id_usuario != current_user.id_usuario:
+            raise HTTPException(status_code=403, detail="No puedes registrar ventas en el corte de otro usuario")
 
     for item in datos.items:
         producto = db.query(models.Producto).filter(
@@ -97,13 +106,8 @@ def registrar_venta(
         db.add(detalle)
 
     # Sumar al total del corte si aplica
-    if datos.id_corte:
-        corte = db.query(models.CorteCaja).filter(
-            models.CorteCaja.id_corte == datos.id_corte,
-            models.CorteCaja.estado == "abierto",
-        ).first()
-        if corte:
-            corte.total_ventas = round(corte.total_ventas + total, 2)
+    if corte:
+        corte.total_ventas = round(corte.total_ventas + total, 2)
 
     db.commit()
     db.refresh(venta)
