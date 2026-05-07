@@ -15,6 +15,15 @@ const PRODUCTOS_MOCK = [
   { id: 4, codigo_barras: 'ZAP-RUN-001',nombre: 'Zapatillas Running Pro',         categoria: 'Calzado Deportivo', precio_unitario: 850.50,  stock_actual: 3  },
 ];
 
+const normalizarProducto = (producto) => ({
+  ...producto,
+  id: producto.id ?? producto.id_producto,
+  categoria:
+    typeof producto.categoria === 'string'
+      ? producto.categoria
+      : producto.categoria?.nombre || 'Sin categoría',
+});
+
 // ── Íconos SVG inline ────────────────────────────────────────────────────────
 const Ico = ({ d, className = 'w-5 h-5' }) => (
   <svg className={className} fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
@@ -216,7 +225,8 @@ export default function HubPrincipal({ sesion, onLogout }) {
       try {
         const res = await fetch(`${API_URL}/productos/`);
         if (!res.ok) throw new Error();
-        setProductos(await res.json());
+        const data = await res.json();
+        setProductos(data.map(normalizarProducto));
       } catch {
         setProductos(PRODUCTOS_MOCK);
       } finally {
