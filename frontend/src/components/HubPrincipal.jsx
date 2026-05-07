@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
-import { API_URL } from '../lib/api';
+import { authFetch, API_URL } from '../lib/api';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 const STOCK_MIN = 10;
@@ -220,21 +220,23 @@ export default function HubPrincipal({ sesion, onLogout }) {
   const [productos, setProductos] = useState([]);
   const [cargando,  setCargando]  = useState(true);
 
+  const fetchProductos = useCallback(async () => {
+    setCargando(true);
+    try {
+      const res = await authFetch('/api/v1/productos/', sesion);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setProductos(data.map(normalizarProducto));
+    } catch {
+      setProductos(PRODUCTOS_MOCK);
+    } finally {
+      setCargando(false);
+    }
+  }, [sesion]);
+
   useEffect(() => {
-    const fetchProductos = async () => {
-      try {
-        const res = await fetch(`${API_URL}/productos/`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        setProductos(data.map(normalizarProducto));
-      } catch {
-        setProductos(PRODUCTOS_MOCK);
-      } finally {
-        setCargando(false);
-      }
-    };
     fetchProductos();
-  }, []);
+  }, [fetchProductos]);
 
   // Eliminar producto (actualiza el estado global)
   const eliminarProducto = async (id) => {
@@ -261,7 +263,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
     switch (menuActivo) {
       case 'dashboard': return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
       case 'catalogo':  return <ListaProductos productos={productos} cargando={cargando} onEliminar={eliminarProducto} onAgregar={agregarProducto} mostrarNotificacion={mostrarNotificacion} />;
-      case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
+      case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} onVentaRegistrada={fetchProductos} mostrarNotificacion={mostrarNotificacion} />;
       case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} />;
       case 'config':    return <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
       default:          return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
