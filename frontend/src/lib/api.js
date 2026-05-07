@@ -1,6 +1,7 @@
 export const API_URL = 'http://localhost:8000';
 
 const SESSION_KEY = 'stoko_sesion';
+export const SESSION_EXPIRED_EVENT = 'stoko:sesion-expirada';
 
 export function guardarSesion(sesion) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(sesion));
@@ -57,8 +58,15 @@ export async function authFetch(path, sesion, options = {}) {
     headers.set('Authorization', `Bearer ${sesion.token}`);
   }
 
-  return fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers,
   });
+
+  if (res.status === 401) {
+    limpiarSesion();
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  }
+
+  return res;
 }
