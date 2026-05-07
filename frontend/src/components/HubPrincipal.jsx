@@ -196,6 +196,8 @@ function Proximamente({ seccion }) {
 export default function HubPrincipal({ sesion, onLogout }) {
   const [menuActivo, setMenuActivo] = useState('dashboard');
   const usuario = sesion?.usuario;
+  const esAdministrador = usuario?.rol?.toLowerCase() === 'administrador';
+  const menuVisible = MENU.filter((item) => item.id !== 'config' || esAdministrador);
 
   // ── Sistema de notificaciones Toast ────────────────────────────────────────
   const [toast, setToast] = useState({ visible: false, mensaje: '', tipo: '' });
@@ -251,7 +253,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
       case 'catalogo':  return <ListaProductos productos={productos} cargando={cargando} onEliminar={eliminarProducto} onAgregar={agregarProducto} mostrarNotificacion={mostrarNotificacion} />;
       case 'ventas':    return <RegistroVenta productos={productos} mostrarNotificacion={mostrarNotificacion} />;
       case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} />;
-      case 'config':    return <Configuracion mostrarNotificacion={mostrarNotificacion} />;
+      case 'config':    return <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
       default:          return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
     }
   };
@@ -283,7 +285,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
 
         <nav className="flex-1 px-3 py-4 space-y-1">
           <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest px-3 mb-3">Principal</p>
-          {MENU.map(({ id, label, icon }) => {
+          {menuVisible.map(({ id, label, icon }) => {
             const activo = menuActivo === id;
             return (
               <button key={id} onClick={() => setMenuActivo(id)}
@@ -319,7 +321,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
       <main className="flex-1 overflow-y-auto">
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-            {MENU.find((m) => m.id === menuActivo)?.label}
+            {menuVisible.find((m) => m.id === menuActivo)?.label || 'Dashboard'}
           </p>
           <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
