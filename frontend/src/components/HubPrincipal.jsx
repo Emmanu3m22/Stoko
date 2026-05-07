@@ -8,12 +8,8 @@ import { authFetch } from '../lib/api';
 // ── Constantes ───────────────────────────────────────────────────────────────
 const STOCK_MIN = 10;
 
-const PRODUCTOS_MOCK = [
-  { id: 1, codigo_barras: 'STK-0024-X', nombre: 'Reloj Cronógrafo Sovereign A', categoria: 'Relojería',         precio_unitario: 1240.00, stock_actual: 42 },
-  { id: 2, codigo_barras: 'STK-0037-B', nombre: 'Pulsera Titanium Edge',         categoria: 'Accesorios',        precio_unitario: 580.00,  stock_actual: 15 },
-  { id: 3, codigo_barras: 'STK-0051-C', nombre: 'Gafas Polarizadas Onyx',        categoria: 'Óptica',            precio_unitario: 890.00,  stock_actual: 8  },
-  { id: 4, codigo_barras: 'ZAP-RUN-001',nombre: 'Zapatillas Running Pro',         categoria: 'Calzado Deportivo', precio_unitario: 850.50,  stock_actual: 3  },
-];
+// PRODUCTOS_MOCK eliminado — el sistema ahora es 100% real.
+
 
 const normalizarProducto = (producto) => ({
   ...producto,
@@ -142,7 +138,7 @@ function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
                   <td className="py-3 px-6 font-semibold text-gray-900 text-sm">{p.nombre}</td>
                   <td className="py-3 px-4">
                     <span className="bg-blue-100 text-[#4169E1] px-2 py-0.5 rounded-full text-xs font-semibold">
-                      {p.categoria}
+                      {typeof p.categoria === 'object' ? p.categoria?.nombre : p.categoria}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-center">
@@ -204,7 +200,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
     setTimeout(() => setToast({ visible: false, mensaje: '', tipo: '' }), 3500);
   };
 
-  // ── ÚNICA fuente de verdad para los productos ──────────────────────────────
+  // ── ÚNICA fuente de verdad para productos y categorías ─────────────────────
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargando,  setCargando]  = useState(true);
@@ -224,6 +220,24 @@ export default function HubPrincipal({ sesion, onLogout }) {
   }, [sesion]);
 
   useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem('stoko_token');
+      try {
+        const [resProd, resCat] = await Promise.all([
+          fetch(`${API_URL}/productos/`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_URL}/api/v1/categorias/`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+        
+        if (resProd.ok) setProductos(await resProd.json());
+        if (resCat.ok) setCategorias(await resCat.json());
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setCargando(false);
+      }
+    };
+    fetchData();
+  }, []);
     fetchProductos();
   }, [fetchProductos]);
 
@@ -241,8 +255,140 @@ export default function HubPrincipal({ sesion, onLogout }) {
     fetchCategorias();
   }, [fetchCategorias]);
 
-  // Eliminar producto (actualiza el estado global)
+  // Eliminar producto real de la BD
   const eliminarProducto = async (id) => {
+    const token = localStorage.getItem('stoko_token');
+    try { 
+      await fetch(`${API_URL}/productos/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      }); 
+      setProductos((prev) => prev.filter((p) => (p.id_producto || p.id) !== id));
+      mostrarNotificacion('Producto eliminado del inventario.', 'error');
+    } catch { 
+      mostrarNotificacion('Error al conectar con el servidor.', 'error');
+    }
+  };
+
+  // Agregar producto real a la BD
+  const agregarProducto = async (prod) => {
+    const token = localStorage.getItem('stoko_token');
+    const payload = {
+      nombre: prod?.nombre || "Nuevo Producto",
+      codigo_barras: prod?.codigo || `STK-${Math.floor(Math.random() * 10000)}`,
+      precio_unitario: prod?.precio ? parseFloat(prod.precio) : 0,
+      stock_actual: prod?.stock ? parseInt(prod.stock, 10) : 0,
+      stock_minimo: 5,
+      id_categoria: parseInt(prod?.categoria, 10) || null
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/productos/`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) throw new Error();
+      
+      const nuevo = await res.json();
+      setProductos([...productos, nuevo]);
+      mostrarNotificacion(`Producto "${nuevo.nombre}" guardado en la base de datos.`);
+    } catch {
+      mostrarNotificacion('Error al guardar el producto.', 'error');
+    }
+  };
+
+  // Agregar categoría real a la BD
+  const agregarCategoria = async (nombre) => {
+    const token = localStorage.getItem('stoko_token');
+    try {
+      const res = await fetch(`${API_URL}/api/v1/categorias/`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ nombre })
+      });
+      if (!res.ok) throw new Error();
+      const nueva = await res.json();
+      setCategorias([...categorias, nueva]);
+      mostrarNotificacion(`Categoría "${nombre}" creada con éxito.`);
+    } catch {
+      mostrarNotificacion('Error al crear la categoría.', 'error');
+    }
+  };
+
+  // Eliminar categoría real de la BD
+  const eliminarCategoria = async (id) => {
+    const token = localStorage.getItem('stoko_token');
+    try {
+      const res = await fetch(`${API_URL}/api/v1/categorias/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Error al eliminar');
+      }
+      setCategorias((prev) => prev.filter((c) => c.id_categoria !== id));
+      mostrarNotificacion('Categoría eliminada con éxito.');
+    } catch (err) {
+      mostrarNotificacion(err.message || 'Error al conectar con el servidor.', 'error');
+    }
+  };
+
+  // Actualizar categoría real en la BD
+  const actualizarCategoria = async (id, nombre) => {
+    const token = localStorage.getItem('stoko_token');
+    try {
+      const res = await fetch(`${API_URL}/api/v1/categorias/${id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ nombre })
+      });
+      if (!res.ok) throw new Error();
+      const actualizada = await res.json();
+      setCategorias((prev) => prev.map((c) => c.id_categoria === id ? actualizada : c));
+      mostrarNotificacion('Categoría actualizada.');
+    } catch {
+      mostrarNotificacion('Error al actualizar la categoría.', 'error');
+    }
+  };
+
+  // Actualizar producto real en la BD
+  const actualizarProducto = async (id, prod) => {
+    const token = localStorage.getItem('stoko_token');
+    const payload = {
+      nombre: prod.nombre,
+      codigo_barras: prod.codigo,
+      precio_unitario: parseFloat(prod.precio),
+      stock_actual: parseInt(prod.stock, 10),
+      id_categoria: parseInt(prod.categoria, 10) || null
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/api/v1/productos/${id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error();
+      const actualizado = await res.json();
+      setProductos((prev) => prev.map((p) => (p.id_producto || p.id) === id ? actualizado : p));
+      mostrarNotificacion(`Producto "${actualizado.nombre}" actualizado.`);
+    } catch {
+      mostrarNotificacion('Error al actualizar el producto.', 'error');
     try {
       const res = await authFetch(`/api/v1/productos/${id}`, sesion, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
@@ -283,6 +429,23 @@ export default function HubPrincipal({ sesion, onLogout }) {
   const renderContenido = () => {
     switch (menuActivo) {
       case 'dashboard': return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
+      case 'catalogo':  return (
+        <ListaProductos 
+          productos={productos} 
+          categorias={categorias} 
+          cargando={cargando} 
+          onEliminar={eliminarProducto} 
+          onAgregar={agregarProducto} 
+          onActualizar={actualizarProducto}
+          onAgregarCat={agregarCategoria} 
+          onEliminarCat={eliminarCategoria}
+          onActualizarCat={actualizarCategoria}
+          mostrarNotificacion={mostrarNotificacion} 
+        />
+      );
+      case 'ventas':    return <RegistroVenta productos={productos} mostrarNotificacion={mostrarNotificacion} />;
+      case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} />;
+      case 'config':    return <Configuracion mostrarNotificacion={mostrarNotificacion} />;
       case 'catalogo':  return <ListaProductos productos={productos} categorias={categorias} cargando={cargando} onEliminar={eliminarProducto} onAgregar={agregarProducto} mostrarNotificacion={mostrarNotificacion} />;
       case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} onVentaRegistrada={fetchProductos} mostrarNotificacion={mostrarNotificacion} />;
       case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} sesion={sesion} />;

@@ -319,6 +319,41 @@ export default function RegistroVenta({ productos = [], sesion, onVentaRegistrad
 
         {/* Botón finalizar */}
         <button
+          onClick={async () => {
+            if (carrito.length === 0) return;
+            
+            const token = localStorage.getItem('stoko_token');
+            const payload = {
+              metodo_pago: 'efectivo', // Valor por defecto para esta demo
+              items: carrito.map(item => ({
+                id_producto: item.id_producto || item.id,
+                cantidad: item.cantidad
+              }))
+            };
+
+            try {
+              const res = await fetch('http://localhost:8000/api/v1/ventas/', {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+              });
+
+              if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.detail || 'Error al registrar la venta');
+              }
+
+              const data = await res.json();
+              mostrarNotificacion(`¡Venta #${data.id_venta} registrada! Total: ${fmt(data.total)}`);
+              setFinalizado(true);
+            } catch (err) {
+              mostrarNotificacion(err.message, 'error');
+            }
+          }}
+          disabled={carrito.length === 0}
           onClick={finalizarVenta}
           disabled={carrito.length === 0 || procesando}
           className="w-full bg-[#4169E1] hover:bg-[#3155c7] disabled:opacity-40 disabled:cursor-not-allowed

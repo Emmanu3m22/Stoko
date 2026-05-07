@@ -74,14 +74,20 @@ class UsuarioResponse(BaseModel):
 # ─────────────────────────────────────────────────────────────
 
 class CategoriaCreate(BaseModel):
-    nombre: str = Field(..., min_length=1, max_length=100)
+    nombre:      str = Field(..., min_length=1, max_length=100)
+    descripcion: Optional[str] = None
+    icono:       Optional[str] = None
 
 class CategoriaUpdate(BaseModel):
-    nombre: Optional[str] = None
+    nombre:      Optional[str] = None
+    descripcion: Optional[str] = None
+    icono:       Optional[str] = None
 
 class CategoriaResponse(BaseModel):
     id_categoria: int
     nombre:       str
+    descripcion:  Optional[str] = None
+    icono:        Optional[str] = None
     model_config  = {"from_attributes": True}
 
 
@@ -95,6 +101,7 @@ class ProductoBase(BaseModel):
     precio_unitario: float = Field(..., gt=0)
     stock_actual:    int   = Field(0,  ge=0)
     stock_minimo:    int   = Field(5,  ge=0)
+    imagen_url:      Optional[str] = None
     id_categoria:    Optional[int] = None
 
 class ProductoCreate(ProductoBase):
@@ -106,6 +113,7 @@ class ProductoUpdate(BaseModel):
     precio_unitario: Optional[float] = Field(None, gt=0)
     stock_actual:    Optional[int]   = Field(None, ge=0)
     stock_minimo:    Optional[int]   = Field(None, ge=0)
+    imagen_url:      Optional[str]   = None
     id_categoria:    Optional[int]   = None
 
 class ProductoResponse(ProductoBase):
