@@ -105,6 +105,8 @@ class Categoria(Base):
 
     id_categoria = Column(Integer, primary_key=True, index=True)
     nombre       = Column(String(100), unique=True, nullable=False)
+    descripcion  = Column(Text, nullable=True)
+    icono        = Column(String(50), nullable=True)  # Nombre del ícono o emoji
 
     # Relaciones
     productos = relationship("Producto", back_populates="categoria")
@@ -131,6 +133,7 @@ class Producto(Base):
     precio_unitario = Column(Float, nullable=False)
     stock_actual    = Column(Integer, default=0, nullable=False)
     stock_minimo    = Column(Integer, default=5, nullable=False)
+    imagen_url      = Column(Text, nullable=True)
     id_categoria    = Column(Integer, ForeignKey("categorias.id_categoria"), nullable=True)
 
     # Relaciones
