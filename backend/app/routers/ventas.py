@@ -17,7 +17,8 @@ Endpoints:
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from datetime import datetime
+from sqlalchemy import func, desc
+from datetime import datetime, date
 
 from app.database import get_db
 from app import models, schemas
@@ -130,6 +131,90 @@ def listar_ventas(
     if not anuladas:
         q = q.filter(models.Venta.anulada == False)
     return q.order_by(models.Venta.fecha.desc()).offset(skip).limit(limit).all()
+
+
+@router.get("/reporte", response_model=schemas.VentaReporte)
+def generar_reporte(
+    fecha_inicio: date = Query(...),
+    fecha_fin: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(require_admin),
+):
+    """
+    Genera un reporte agregado de ventas en un periodo dado.
+    Solo para administradores.
+    """
+    if fecha_inicio > fecha_fin:
+        raise HTTPException(status_code=400, detail="fecha_inicio no puede ser posterior a fecha_fin")
+
+    # 1. Total y número de transacciones
+    resumen = db.query(
+        func.count(models.Venta.id_venta).label("num_transacciones"),
+        func.sum(models.Venta.total).label("total_periodo")
+    ).filter(
+        models.Venta.anulada == False,
+        func.date(models.Venta.fecha) >= fecha_inicio,
+        func.date(models.Venta.fecha) <= fecha_fin
+    ).first()
+
+    num_transacciones = resumen.num_transacciones or 0
+    total_periodo = resumen.total_periodo or 0.0
+
+    # 2. Desglose por método de pago
+    pagos_query = db.query(
+        models.Venta.metodo_pago,
+        func.sum(models.Venta.total).label("total")
+    ).filter(
+        models.Venta.anulada == False,
+        func.date(models.Venta.fecha) >= fecha_inicio,
+        func.date(models.Venta.fecha) <= fecha_fin
+    ).group_by(models.Venta.metodo_pago).all()
+
+    por_metodo_pago = {p.metodo_pago: float(p.total) for p in pagos_query}
+
+    # 3. Productos más vendidos (Top 10)
+    top_query = db.query(
+        models.Producto.nombre,
+        func.sum(models.DetalleVenta.cantidad).label("cantidad_vendida"),
+        func.sum(models.DetalleVenta.subtotal).label("ingreso_generado")
+    ).join(
+        models.DetalleVenta, models.DetalleVenta.id_producto == models.Producto.id_producto
+    ).join(
+        models.Venta, models.Venta.id_venta == models.DetalleVenta.id_venta
+    ).filter(
+        models.Venta.anulada == False,
+        func.date(models.Venta.fecha) >= fecha_inicio,
+        func.date(models.Venta.fecha) <= fecha_fin
+    ).group_by(
+        models.Producto.id_producto
+    ).order_by(
+        desc("cantidad_vendida")
+    ).limit(10).all()
+
+    productos_top = [
+        {
+            "nombre": row.nombre,
+            "cantidad": row.cantidad_vendida,
+            "ingreso": float(row.ingreso_generado)
+        }
+        for row in top_query
+    ]
+
+    # Auditoría
+    auditoria_service.registrar(
+        db,
+        operacion="generar_reporte_ventas",
+        detalles=f"Reporte consultado del {fecha_inicio} al {fecha_fin}",
+        id_usuario=current_user.id_usuario,
+    )
+    db.commit()
+
+    return {
+        "total_periodo": total_periodo,
+        "num_transacciones": num_transacciones,
+        "por_metodo_pago": por_metodo_pago,
+        "productos_top": productos_top,
+    }
 
 
 @router.get("/{venta_id}", response_model=schemas.VentaResponse)

@@ -169,6 +169,17 @@ class VentaResumen(BaseModel):
     anulada:    bool
     model_config = {"from_attributes": True}
 
+class ProductoTopResumen(BaseModel):
+    nombre: str
+    cantidad: int
+    ingreso: float
+
+class VentaReporte(BaseModel):
+    total_periodo: float
+    num_transacciones: int
+    por_metodo_pago: dict[str, float]
+    productos_top: List[ProductoTopResumen]
+
 
 # ─────────────────────────────────────────────────────────────
 # CORTES DE CAJA
