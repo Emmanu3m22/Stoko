@@ -46,11 +46,6 @@ export default function ListaProductos({
     });
     setMostrarModal(true);
   };
-export default function ListaProductos({ productos = [], categorias = [], cargando = false, onEliminar, onAgregar }) {
-  // Estado para la ventana modal
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [form, setForm] = useState({ nombre: '', id_categoria: '', precio: '', stock: '', stock_minimo: '5', codigo: '' });
-
   const manejarEnvio = async (e) => {
     e.preventDefault();
     if (!form.categoria) {
@@ -64,15 +59,17 @@ export default function ListaProductos({ productos = [], categorias = [], cargan
       return;
     }
 
+    let guardado = false;
     if (editando) {
-      onActualizar(editando, form);
+      guardado = await onActualizar(editando, form);
     } else {
-      onAgregar(form);
+      guardado = await onAgregar(form);
     }
-    const guardado = await onAgregar(form);
-    if (!guardado) return;
-    setMostrarModal(false);
-    setForm({ nombre: '', id_categoria: '', precio: '', stock: '', stock_minimo: '5', codigo: '' });
+    
+    if (guardado !== false) {
+      setMostrarModal(false);
+      setForm({ nombre: '', categoria: '', precio: '', stock: '', codigo: '' });
+    }
   };
 
   // ── Acciones de Categorías ─────────────────────────────────────────────────
@@ -408,10 +405,6 @@ export default function ListaProductos({ productos = [], categorias = [], cargan
                     className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-[#4169E1] outline-none transition-all text-sm font-bold text-gray-900 appearance-none"
                   >
                     <option value="">Seleccionar...</option>
-                    {categorias.map(cat => (
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Categoría</label>
-                  <select value={form.id_categoria} onChange={e => setForm({...form, id_categoria: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] outline-none transition-all text-sm font-medium text-gray-900">
-                    <option value="">Sin categoría</option>
                     {categorias.map((cat) => (
                       <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre}</option>
                     ))}

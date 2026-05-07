@@ -18,31 +18,11 @@ export default function Login({ onLoginExitoso }) {
     setCargando(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          username: email,
-          password: password,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || 'Error al iniciar sesión');
-      }
-
-      const data = await res.json();
-      localStorage.setItem('stoko_token', data.access_token);
-      localStorage.setItem('stoko_user', JSON.stringify({ nombre: data.nombre, email, rol: data.rol }));
-      
-      onLoginExitoso?.();
-    } catch (err) {
-      setError(err.message);
       const sesion = await iniciarSesion(email.trim(), password);
       onLoginExitoso?.(sesion);
     } catch (err) {
       setError(err.message || 'No se pudo iniciar sesión.');
+    } finally {
       setCargando(false);
     }
   };

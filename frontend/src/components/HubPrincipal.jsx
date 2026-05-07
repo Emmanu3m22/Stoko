@@ -213,33 +213,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
       const data = await res.json();
       setProductos(data.map(normalizarProducto));
     } catch {
-      setProductos(PRODUCTOS_MOCK);
+      setProductos([]);
     } finally {
       setCargando(false);
     }
   }, [sesion]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem('stoko_token');
-      try {
-        const [resProd, resCat] = await Promise.all([
-          fetch(`${API_URL}/productos/`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_URL}/api/v1/categorias/`, { headers: { 'Authorization': `Bearer ${token}` } })
-        ]);
-        
-        if (resProd.ok) setProductos(await resProd.json());
-        if (resCat.ok) setCategorias(await resCat.json());
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
-        setCargando(false);
-      }
-    };
-    fetchData();
-  }, []);
-    fetchProductos();
-  }, [fetchProductos]);
 
   const fetchCategorias = useCallback(async () => {
     try {
@@ -252,143 +230,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
   }, [sesion]);
 
   useEffect(() => {
+    fetchProductos();
     fetchCategorias();
-  }, [fetchCategorias]);
+  }, [fetchProductos, fetchCategorias]);
 
-  // Eliminar producto real de la BD
   const eliminarProducto = async (id) => {
-    const token = localStorage.getItem('stoko_token');
-    try { 
-      await fetch(`${API_URL}/productos/${id}`, { 
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      }); 
-      setProductos((prev) => prev.filter((p) => (p.id_producto || p.id) !== id));
-      mostrarNotificacion('Producto eliminado del inventario.', 'error');
-    } catch { 
-      mostrarNotificacion('Error al conectar con el servidor.', 'error');
-    }
-  };
-
-  // Agregar producto real a la BD
-  const agregarProducto = async (prod) => {
-    const token = localStorage.getItem('stoko_token');
-    const payload = {
-      nombre: prod?.nombre || "Nuevo Producto",
-      codigo_barras: prod?.codigo || `STK-${Math.floor(Math.random() * 10000)}`,
-      precio_unitario: prod?.precio ? parseFloat(prod.precio) : 0,
-      stock_actual: prod?.stock ? parseInt(prod.stock, 10) : 0,
-      stock_minimo: 5,
-      id_categoria: parseInt(prod?.categoria, 10) || null
-    };
-
-    try {
-      const res = await fetch(`${API_URL}/productos/`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!res.ok) throw new Error();
-      
-      const nuevo = await res.json();
-      setProductos([...productos, nuevo]);
-      mostrarNotificacion(`Producto "${nuevo.nombre}" guardado en la base de datos.`);
-    } catch {
-      mostrarNotificacion('Error al guardar el producto.', 'error');
-    }
-  };
-
-  // Agregar categoría real a la BD
-  const agregarCategoria = async (nombre) => {
-    const token = localStorage.getItem('stoko_token');
-    try {
-      const res = await fetch(`${API_URL}/api/v1/categorias/`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ nombre })
-      });
-      if (!res.ok) throw new Error();
-      const nueva = await res.json();
-      setCategorias([...categorias, nueva]);
-      mostrarNotificacion(`Categoría "${nombre}" creada con éxito.`);
-    } catch {
-      mostrarNotificacion('Error al crear la categoría.', 'error');
-    }
-  };
-
-  // Eliminar categoría real de la BD
-  const eliminarCategoria = async (id) => {
-    const token = localStorage.getItem('stoko_token');
-    try {
-      const res = await fetch(`${API_URL}/api/v1/categorias/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Error al eliminar');
-      }
-      setCategorias((prev) => prev.filter((c) => c.id_categoria !== id));
-      mostrarNotificacion('Categoría eliminada con éxito.');
-    } catch (err) {
-      mostrarNotificacion(err.message || 'Error al conectar con el servidor.', 'error');
-    }
-  };
-
-  // Actualizar categoría real en la BD
-  const actualizarCategoria = async (id, nombre) => {
-    const token = localStorage.getItem('stoko_token');
-    try {
-      const res = await fetch(`${API_URL}/api/v1/categorias/${id}`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` 
-        },
-        body: JSON.stringify({ nombre })
-      });
-      if (!res.ok) throw new Error();
-      const actualizada = await res.json();
-      setCategorias((prev) => prev.map((c) => c.id_categoria === id ? actualizada : c));
-      mostrarNotificacion('Categoría actualizada.');
-    } catch {
-      mostrarNotificacion('Error al actualizar la categoría.', 'error');
-    }
-  };
-
-  // Actualizar producto real en la BD
-  const actualizarProducto = async (id, prod) => {
-    const token = localStorage.getItem('stoko_token');
-    const payload = {
-      nombre: prod.nombre,
-      codigo_barras: prod.codigo,
-      precio_unitario: parseFloat(prod.precio),
-      stock_actual: parseInt(prod.stock, 10),
-      id_categoria: parseInt(prod.categoria, 10) || null
-    };
-
-    try {
-      const res = await fetch(`${API_URL}/api/v1/productos/${id}`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error();
-      const actualizado = await res.json();
-      setProductos((prev) => prev.map((p) => (p.id_producto || p.id) === id ? actualizado : p));
-      mostrarNotificacion(`Producto "${actualizado.nombre}" actualizado.`);
-    } catch {
-      mostrarNotificacion('Error al actualizar el producto.', 'error');
     try {
       const res = await authFetch(`/api/v1/productos/${id}`, sesion, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
@@ -426,6 +272,75 @@ export default function HubPrincipal({ sesion, onLogout }) {
     }
   };
 
+  const actualizarProducto = async (id, prod) => {
+    try {
+      const payload = {
+        nombre: prod.nombre.trim(),
+        codigo_barras: prod.codigo.trim(),
+        precio_unitario: Number(prod.precio),
+        stock_actual: Number.parseInt(prod.stock, 10),
+        id_categoria: prod.categoria ? Number(prod.categoria) : null,
+      };
+      const res = await authFetch(`/api/v1/productos/${id}`, sesion, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'No se pudo actualizar el producto.');
+      const actualizado = normalizarProducto(data);
+      setProductos((prev) => prev.map((p) => (p.id === id ? actualizado : p)));
+      mostrarNotificacion(`Producto "${actualizado.nombre}" actualizado.`);
+      return true;
+    } catch (err) {
+      mostrarNotificacion(err.message || 'Error al actualizar el producto.', 'error');
+      return false;
+    }
+  };
+
+  const agregarCategoria = async (nombre) => {
+    try {
+      const res = await authFetch('/api/v1/categorias/', sesion, {
+        method: 'POST',
+        body: JSON.stringify({ nombre }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Error al crear la categoría.');
+      setCategorias([...categorias, data]);
+      mostrarNotificacion(`Categoría "${nombre}" creada con éxito.`);
+      return true;
+    } catch (err) {
+      mostrarNotificacion(err.message || 'Error al crear la categoría.', 'error');
+      return false;
+    }
+  };
+
+  const eliminarCategoria = async (id) => {
+    try {
+      const res = await authFetch(`/api/v1/categorias/${id}`, sesion, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Error al eliminar');
+      setCategorias((prev) => prev.filter((c) => c.id_categoria !== id));
+      mostrarNotificacion('Categoría eliminada con éxito.');
+    } catch (err) {
+      mostrarNotificacion(err.message || 'Error al conectar con el servidor.', 'error');
+    }
+  };
+
+  const actualizarCategoria = async (id, nombre) => {
+    try {
+      const res = await authFetch(`/api/v1/categorias/${id}`, sesion, {
+        method: 'PATCH',
+        body: JSON.stringify({ nombre }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Error al actualizar');
+      setCategorias((prev) => prev.map((c) => c.id_categoria === id ? data : c));
+      mostrarNotificacion('Categoría actualizada.');
+    } catch (err) {
+      mostrarNotificacion(err.message || 'Error al actualizar la categoría.', 'error');
+    }
+  };
+
   const renderContenido = () => {
     switch (menuActivo) {
       case 'dashboard': return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
@@ -443,10 +358,6 @@ export default function HubPrincipal({ sesion, onLogout }) {
           mostrarNotificacion={mostrarNotificacion} 
         />
       );
-      case 'ventas':    return <RegistroVenta productos={productos} mostrarNotificacion={mostrarNotificacion} />;
-      case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} />;
-      case 'config':    return <Configuracion mostrarNotificacion={mostrarNotificacion} />;
-      case 'catalogo':  return <ListaProductos productos={productos} categorias={categorias} cargando={cargando} onEliminar={eliminarProducto} onAgregar={agregarProducto} mostrarNotificacion={mostrarNotificacion} />;
       case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} onVentaRegistrada={fetchProductos} mostrarNotificacion={mostrarNotificacion} />;
       case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} sesion={sesion} />;
       case 'config':    return <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
