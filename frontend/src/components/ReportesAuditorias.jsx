@@ -1,7 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { authFetch } from '../lib/api';
 
-export default function ReportesAuditorias({ mostrarNotificacion }) {
+export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   const [pestaña, setPestaña] = useState('corte');
+
+  const esAdministrador = sesion?.usuario?.rol?.toLowerCase() === 'administrador';
+  
+  const [auditorias, setAuditorias] = useState([]);
+  const [cargandoAuditorias, setCargandoAuditorias] = useState(false);
+  const [skip, setSkip] = useState(0);
+  const [operacionFiltro, setOperacionFiltro] = useState('');
+  const limit = 20;
+
+  const fetchAuditorias = useCallback(async () => {
+    if (!esAdministrador) return;
+    setCargandoAuditorias(true);
+    try {
+      let url = `/api/v1/auditorias/?skip=${skip}&limit=${limit}`;
+      if (operacionFiltro) {
+        url += `&operacion=${operacionFiltro}`;
+      }
+      const res = await authFetch(url, sesion);
+      if (res.ok) {
+        const data = await res.json();
+        setAuditorias(data);
+      } else {
+        throw new Error('Error en respuesta');
+      }
+    } catch (e) {
+      console.error(e);
+      mostrarNotificacion('Error al cargar auditorías', 'error');
+    } finally {
+      setCargandoAuditorias(false);
+    }
+  }, [skip, limit, operacionFiltro, esAdministrador, sesion, mostrarNotificacion]);
+
+  useEffect(() => {
+    if (pestaña === 'auditoria') {
+      fetchAuditorias();
+    }
+  }, [pestaña, fetchAuditorias]);
 
   const simularCorte = () => {
     mostrarNotificacion('Cálculo realizado. Turno cerrado con balance de $145,580.00.');
@@ -26,6 +64,14 @@ export default function ReportesAuditorias({ mostrarNotificacion }) {
           >
             IA Insights (Gemini)
           </button>
+          {esAdministrador && (
+            <button 
+              onClick={() => { setPestaña('auditoria'); setSkip(0); }}
+              className={`font-semibold pb-2 ${pestaña === 'auditoria' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+            >
+              Historial de Operaciones
+            </button>
+          )}
         </div>
       </div>
 
@@ -107,6 +153,96 @@ export default function ReportesAuditorias({ mostrarNotificacion }) {
               </div>
               <p className="text-sm text-gray-500 mt-4 text-center">Excelente</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {pestaña === 'auditoria' && esAdministrador && (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-[slideIn_0.3s_ease-out]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Historial de Auditoría</h3>
+              <p className="text-sm text-gray-500 mt-1">Registro inmutable de operaciones críticas del sistema</p>
+            </div>
+            <select 
+              value={operacionFiltro} 
+              onChange={(e) => { setOperacionFiltro(e.target.value); setSkip(0); }}
+              className="border border-gray-200 rounded-xl p-2.5 text-sm font-medium bg-gray-50 outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1] transition-all"
+            >
+              <option value="">Todas las operaciones</option>
+              <option value="login">Login</option>
+              <option value="logout">Logout</option>
+              <option value="crear_producto">Crear Producto</option>
+              <option value="editar_producto">Editar Producto</option>
+              <option value="eliminar_producto">Eliminar Producto</option>
+              <option value="registrar_venta">Registrar Venta</option>
+              <option value="anular_venta">Anular Venta</option>
+              <option value="abrir_corte">Abrir Corte</option>
+              <option value="cerrar_corte">Cerrar Corte</option>
+              <option value="registrar_incidencia">Registrar Incidencia</option>
+            </select>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-gray-100">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-xs text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                  <th className="py-3 px-4 font-semibold">Fecha / Hora</th>
+                  <th className="py-3 px-4 font-semibold">Operación</th>
+                  <th className="py-3 px-4 font-semibold">ID Usuario</th>
+                  <th className="py-3 px-4 font-semibold">Detalles</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 text-sm">
+                {cargandoAuditorias ? (
+                  <tr><td colSpan="4" className="py-8 text-center text-gray-400 font-medium animate-pulse">Cargando registros...</td></tr>
+                ) : auditorias.length === 0 ? (
+                  <tr><td colSpan="4" className="py-8 text-center text-gray-400 font-medium">No se encontraron registros de auditoría.</td></tr>
+                ) : (
+                  auditorias.map((a) => (
+                    <tr key={a.id_auditoria || a.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
+                        {new Date(a.fecha).toLocaleString('es-MX', {
+                          year: 'numeric', month: 'short', day: '2-digit',
+                          hour: '2-digit', minute: '2-digit', second: '2-digit'
+                        })}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide">
+                          {a.operacion.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 font-mono text-gray-500">
+                        {a.id_usuario ? `#${a.id_usuario}` : 'Sistema'}
+                      </td>
+                      <td className="py-3 px-4 text-gray-500 max-w-md truncate" title={a.detalles || 'Sin detalles'}>
+                        {a.detalles || '-'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="flex justify-between items-center mt-6 pt-2">
+            <button 
+              onClick={() => setSkip(Math.max(0, skip - limit))}
+              disabled={skip === 0 || cargandoAuditorias}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-transparent transition-all"
+            >
+              ← Anterior
+            </button>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              Página {Math.floor(skip / limit) + 1}
+            </span>
+            <button 
+              onClick={() => setSkip(skip + limit)}
+              disabled={auditorias.length < limit || cargandoAuditorias}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-40 disabled:hover:bg-transparent transition-all"
+            >
+              Siguiente →
+            </button>
           </div>
         </div>
       )}
