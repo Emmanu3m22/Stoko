@@ -4,16 +4,17 @@ import { useState } from 'react';
 // Este componente solo recibe props y renderiza.
 const STOCK_BAJO = 10;
 
-export default function ListaProductos({ productos = [], cargando = false, onEliminar, onAgregar, mostrarNotificacion }) {
+export default function ListaProductos({ productos = [], categorias = [], cargando = false, onEliminar, onAgregar, mostrarNotificacion }) {
   // Estado para la ventana modal
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [form, setForm] = useState({ nombre: '', categoria: '', precio: '', stock: '', codigo: '' });
+  const [form, setForm] = useState({ nombre: '', id_categoria: '', precio: '', stock: '', stock_minimo: '5', codigo: '' });
 
-  const manejarEnvio = (e) => {
+  const manejarEnvio = async (e) => {
     e.preventDefault();
-    onAgregar(form);
+    const guardado = await onAgregar(form);
+    if (!guardado) return;
     setMostrarModal(false);
-    setForm({ nombre: '', categoria: '', precio: '', stock: '', codigo: '' });
+    setForm({ nombre: '', id_categoria: '', precio: '', stock: '', stock_minimo: '5', codigo: '' });
   };
 
   // ── Renderizado (solo contenido — el layout lo gestiona HubPrincipal) ────────
@@ -89,7 +90,12 @@ export default function ListaProductos({ productos = [], cargando = false, onEli
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Categoría</label>
-                  <input required type="text" value={form.categoria} onChange={e => setForm({...form, categoria: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] outline-none transition-all text-sm font-medium text-gray-900" />
+                  <select value={form.id_categoria} onChange={e => setForm({...form, id_categoria: e.target.value})} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] outline-none transition-all text-sm font-medium text-gray-900">
+                    <option value="">Sin categoría</option>
+                    {categorias.map((cat) => (
+                      <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Código de barras</label>

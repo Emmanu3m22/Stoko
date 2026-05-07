@@ -3,7 +3,7 @@ import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
-import { authFetch, API_URL } from '../lib/api';
+import { authFetch } from '../lib/api';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 const STOCK_MIN = 10;
@@ -218,6 +218,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
 
   // ── ÚNICA fuente de verdad para los productos ──────────────────────────────
   const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [cargando,  setCargando]  = useState(true);
 
   const fetchProductos = useCallback(async () => {
@@ -238,31 +239,63 @@ export default function HubPrincipal({ sesion, onLogout }) {
     fetchProductos();
   }, [fetchProductos]);
 
+  const fetchCategorias = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/v1/categorias/', sesion);
+      if (!res.ok) throw new Error();
+      setCategorias(await res.json());
+    } catch {
+      setCategorias([]);
+    }
+  }, [sesion]);
+
+  useEffect(() => {
+    fetchCategorias();
+  }, [fetchCategorias]);
+
   // Eliminar producto (actualiza el estado global)
   const eliminarProducto = async (id) => {
-    try { await fetch(`${API_URL}/productos/${id}`, { method: 'DELETE' }); } catch { /* offline */ }
-    setProductos((prev) => prev.filter((p) => p.id !== id));
-    mostrarNotificacion('Producto eliminado del inventario.', 'error');
+    try {
+      const res = await authFetch(`/api/v1/productos/${id}`, sesion, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'No se pudo eliminar el producto.');
+      setProductos((prev) => prev.filter((p) => p.id !== id));
+      mostrarNotificacion('Producto eliminado del inventario.', 'error');
+    } catch (err) {
+      mostrarNotificacion(err.message || 'No se pudo eliminar el producto.', 'error');
+    }
   };
 
-  // Simular agregar producto
-  const agregarProducto = (prod) => {
-    const nuevo = {
-      id: Date.now(),
-      codigo_barras: prod?.codigo || `DEMO-${Math.floor(Math.random() * 10000)}`,
-      nombre: prod?.nombre || "Nuevo Producto Demo",
-      categoria: prod?.categoria || "General",
-      precio_unitario: prod?.precio ? parseFloat(prod.precio) : 150.00,
-      stock_actual: prod?.stock ? parseInt(prod.stock, 10) : 10
-    };
-    setProductos([...productos, nuevo]);
-    mostrarNotificacion(`Producto "${nuevo.nombre}" agregado exitosamente al catálogo.`);
+  const agregarProducto = async (prod) => {
+    try {
+      const payload = {
+        nombre: prod.nombre.trim(),
+        codigo_barras: prod.codigo.trim(),
+        precio_unitario: Number(prod.precio),
+        stock_actual: Number.parseInt(prod.stock, 10),
+        stock_minimo: Number.parseInt(prod.stock_minimo || '5', 10),
+        id_categoria: prod.id_categoria ? Number(prod.id_categoria) : null,
+      };
+      const res = await authFetch('/api/v1/productos/', sesion, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'No se pudo crear el producto.');
+      const nuevo = normalizarProducto(data);
+      setProductos((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      mostrarNotificacion(`Producto "${nuevo.nombre}" agregado exitosamente al catálogo.`);
+      return true;
+    } catch (err) {
+      mostrarNotificacion(err.message || 'No se pudo crear el producto.', 'error');
+      return false;
+    }
   };
 
   const renderContenido = () => {
     switch (menuActivo) {
       case 'dashboard': return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
-      case 'catalogo':  return <ListaProductos productos={productos} cargando={cargando} onEliminar={eliminarProducto} onAgregar={agregarProducto} mostrarNotificacion={mostrarNotificacion} />;
+      case 'catalogo':  return <ListaProductos productos={productos} categorias={categorias} cargando={cargando} onEliminar={eliminarProducto} onAgregar={agregarProducto} mostrarNotificacion={mostrarNotificacion} />;
       case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} onVentaRegistrada={fetchProductos} mostrarNotificacion={mostrarNotificacion} />;
       case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} />;
       case 'config':    return <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
