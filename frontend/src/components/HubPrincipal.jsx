@@ -261,7 +261,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
     switch (menuActivo) {
       case 'dashboard': return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
       case 'catalogo':  return <ListaProductos productos={productos} cargando={cargando} onEliminar={eliminarProducto} onAgregar={agregarProducto} mostrarNotificacion={mostrarNotificacion} />;
-      case 'ventas':    return <RegistroVenta productos={productos} mostrarNotificacion={mostrarNotificacion} />;
+      case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
       case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} />;
       case 'config':    return <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
       default:          return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
