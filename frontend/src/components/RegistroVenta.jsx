@@ -20,6 +20,7 @@ export default function RegistroVenta({ productos = [], sesion, onVentaRegistrad
   const [busqueda, setBusqueda]   = useState('');
   const [sugerencias, setSugerencias] = useState([]);
   const [ventaRegistrada, setVentaRegistrada] = useState(null);
+  const [ventaPendiente, setVentaPendiente] = useState(null);
   const [procesando, setProcesando] = useState(false);
   const [vista, setVista] = useState('venta');
   const inputRef = useRef(null);
@@ -115,7 +116,15 @@ export default function RegistroVenta({ productos = [], sesion, onVentaRegistrad
       mostrarNotificacion(`Venta #${venta.id_venta} registrada por ${fmt(venta.total)}.`);
       await onVentaRegistrada?.();
     } catch (err) {
-      mostrarNotificacion(err.message || 'No se pudo registrar la venta.', 'error');
+      if (!navigator.onLine || err instanceof TypeError) {
+        setVentaPendiente({ total, items: numItems });
+        setCarrito([]);
+        setBusqueda('');
+        setSugerencias([]);
+        mostrarNotificacion('Venta guardada sin conexión. Se sincronizará automáticamente.', 'success');
+      } else {
+        mostrarNotificacion(err.message || 'No se pudo registrar la venta.', 'error');
+      }
     } finally {
       setProcesando(false);
     }
@@ -135,6 +144,31 @@ export default function RegistroVenta({ productos = [], sesion, onVentaRegistrad
         <p className="text-gray-400 text-xs mb-8">Folio #{String(ventaRegistrada.id_venta).padStart(5, '0')}</p>
         <button
           onClick={() => { setVentaRegistrada(null); setVista('venta'); }}
+          className="bg-[#4169E1] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-[#3155c7] transition-colors shadow-lg shadow-blue-200"
+        >
+          Nueva Venta
+        </button>
+      </div>
+    );
+  }
+
+  if (ventaPendiente) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-24 text-center">
+        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+          <svg className="w-10 h-10 text-[#4169E1]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-black text-gray-900 mb-2">Venta guardada sin conexión</h2>
+        <p className="text-gray-500 text-sm mb-2">
+          Total pendiente: <span className="font-bold text-gray-900">{fmt(ventaPendiente.total)}</span>
+        </p>
+        <p className="text-gray-400 text-xs mb-8">
+          {ventaPendiente.items} ítem{ventaPendiente.items !== 1 ? 's' : ''} se sincronizarán cuando vuelva la conexión.
+        </p>
+        <button
+          onClick={() => { setVentaPendiente(null); setVista('venta'); }}
           className="bg-[#4169E1] text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-[#3155c7] transition-colors shadow-lg shadow-blue-200"
         >
           Nueva Venta
@@ -319,41 +353,6 @@ export default function RegistroVenta({ productos = [], sesion, onVentaRegistrad
 
         {/* Botón finalizar */}
         <button
-          onClick={async () => {
-            if (carrito.length === 0) return;
-            
-            const token = localStorage.getItem('stoko_token');
-            const payload = {
-              metodo_pago: 'efectivo', // Valor por defecto para esta demo
-              items: carrito.map(item => ({
-                id_producto: item.id_producto || item.id,
-                cantidad: item.cantidad
-              }))
-            };
-
-            try {
-              const res = await fetch('http://localhost:8000/api/v1/ventas/', {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-              });
-
-              if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.detail || 'Error al registrar la venta');
-              }
-
-              const data = await res.json();
-              mostrarNotificacion(`¡Venta #${data.id_venta} registrada! Total: ${fmt(data.total)}`);
-              setFinalizado(true);
-            } catch (err) {
-              mostrarNotificacion(err.message, 'error');
-            }
-          }}
-          disabled={carrito.length === 0}
           onClick={finalizarVenta}
           disabled={carrito.length === 0 || procesando}
           className="w-full bg-[#4169E1] hover:bg-[#3155c7] disabled:opacity-40 disabled:cursor-not-allowed

@@ -59,12 +59,9 @@ export default function ListaProductos({
       return;
     }
 
-    let guardado = false;
-    if (editando) {
-      guardado = await onActualizar(editando, form);
-    } else {
-      guardado = await onAgregar(form);
-    }
+    const guardado = editando
+      ? await onActualizar(editando, form)
+      : await onAgregar(form);
     
     if (guardado !== false) {
       setMostrarModal(false);

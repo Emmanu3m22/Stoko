@@ -41,6 +41,41 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              ['http://localhost:8000', 'http://127.0.0.1:8000'].includes(url.origin) &&
+              (url.pathname.startsWith('/api/v1/productos') || url.pathname.startsWith('/api/v1/ventas')),
+            handler: 'NetworkFirst',
+            method: 'GET',
+            options: {
+              cacheName: 'stoko-api-cache',
+              networkTimeoutSeconds: 3,
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+              expiration: {
+                maxEntries: 80,
+                maxAgeSeconds: 60 * 60 * 24,
+              },
+            },
+          },
+          {
+            urlPattern: ({ url }) =>
+              ['http://localhost:8000', 'http://127.0.0.1:8000'].includes(url.origin) &&
+              url.pathname === '/api/v1/ventas/',
+            handler: 'NetworkOnly',
+            method: 'POST',
+            options: {
+              backgroundSync: {
+                name: 'stoko-ventas-pendientes',
+                options: {
+                  maxRetentionTime: 24 * 60,
+                },
+              },
+            },
+          },
+        ],
       },
     }),
   ],
