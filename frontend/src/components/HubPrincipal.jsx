@@ -4,6 +4,7 @@ import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
 import { authFetch } from '../lib/api';
+import { ROLES, esAdministrador as usuarioEsAdministrador, normalizarRol } from '../auth';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 const STOCK_MIN = 10;
@@ -44,8 +45,8 @@ const MENU = [
   { id: 'dashboard', label: 'Dashboard',       icon: 'home' },
   { id: 'catalogo',  label: 'Catálogo',         icon: 'box'  },
   { id: 'ventas',    label: 'Módulo de Ventas', icon: 'cart' },
-  { id: 'reportes',  label: 'Reportes',         icon: 'bar'  },
-  { id: 'config',    label: 'Configuración',    icon: 'cog'  },
+  { id: 'reportes',  label: 'Reportes',         icon: 'bar', roles: [ROLES.ADMINISTRADOR] },
+  { id: 'config',    label: 'Configuración',    icon: 'cog', roles: [ROLES.ADMINISTRADOR] },
 ];
 
 // ── Dashboard (usa datos reales) ─────────────────────────────────────────────
@@ -189,8 +190,9 @@ function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
 export default function HubPrincipal({ sesion, onLogout }) {
   const [menuActivo, setMenuActivo] = useState('dashboard');
   const usuario = sesion?.usuario;
-  const esAdministrador = usuario?.rol?.toLowerCase() === 'administrador';
-  const menuVisible = MENU.filter((item) => item.id !== 'config' || esAdministrador);
+  const rolUsuario = normalizarRol(usuario?.rol);
+  const esAdministrador = usuarioEsAdministrador(usuario);
+  const menuVisible = MENU.filter((item) => !item.roles || item.roles.includes(rolUsuario));
 
   // ── Sistema de notificaciones Toast ────────────────────────────────────────
   const [toast, setToast] = useState({ visible: false, mensaje: '', tipo: '' });
@@ -234,7 +236,18 @@ export default function HubPrincipal({ sesion, onLogout }) {
     fetchCategorias();
   }, [fetchProductos, fetchCategorias]);
 
+  useEffect(() => {
+    if (!menuVisible.some((item) => item.id === menuActivo)) {
+      setMenuActivo('dashboard');
+    }
+  }, [menuActivo, menuVisible]);
+
   const eliminarProducto = async (id) => {
+    if (!esAdministrador) {
+      mostrarNotificacion('Solo un administrador puede eliminar productos.', 'error');
+      return;
+    }
+
     try {
       const res = await authFetch(`/api/v1/productos/${id}`, sesion, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
@@ -247,6 +260,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
   };
 
   const agregarProducto = async (prod) => {
+    if (!esAdministrador) {
+      mostrarNotificacion('Solo un administrador puede crear productos.', 'error');
+      return false;
+    }
+
     try {
       const payload = {
         nombre: prod.nombre.trim(),
@@ -273,6 +291,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
   };
 
   const actualizarProducto = async (id, prod) => {
+    if (!esAdministrador) {
+      mostrarNotificacion('Solo un administrador puede actualizar productos.', 'error');
+      return false;
+    }
+
     try {
       const payload = {
         nombre: prod.nombre.trim(),
@@ -298,6 +321,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
   };
 
   const agregarCategoria = async (nombre) => {
+    if (!esAdministrador) {
+      mostrarNotificacion('Solo un administrador puede crear categorías.', 'error');
+      return false;
+    }
+
     try {
       const res = await authFetch('/api/v1/categorias/', sesion, {
         method: 'POST',
@@ -315,6 +343,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
   };
 
   const eliminarCategoria = async (id) => {
+    if (!esAdministrador) {
+      mostrarNotificacion('Solo un administrador puede eliminar categorías.', 'error');
+      return;
+    }
+
     try {
       const res = await authFetch(`/api/v1/categorias/${id}`, sesion, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
@@ -327,6 +360,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
   };
 
   const actualizarCategoria = async (id, nombre) => {
+    if (!esAdministrador) {
+      mostrarNotificacion('Solo un administrador puede actualizar categorías.', 'error');
+      return;
+    }
+
     try {
       const res = await authFetch(`/api/v1/categorias/${id}`, sesion, {
         method: 'PATCH',
@@ -355,12 +393,17 @@ export default function HubPrincipal({ sesion, onLogout }) {
           onAgregarCat={agregarCategoria} 
           onEliminarCat={eliminarCategoria}
           onActualizarCat={actualizarCategoria}
+          puedeAdministrar={esAdministrador}
           mostrarNotificacion={mostrarNotificacion} 
         />
       );
       case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} onVentaRegistrada={fetchProductos} mostrarNotificacion={mostrarNotificacion} />;
-      case 'reportes':  return <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} sesion={sesion} />;
-      case 'config':    return <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />;
+      case 'reportes':  return esAdministrador
+        ? <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} sesion={sesion} />
+        : <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
+      case 'config':    return esAdministrador
+        ? <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />
+        : <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
       default:          return <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
     }
   };

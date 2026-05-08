@@ -1,25 +1,22 @@
-import { useEffect, useState } from 'react';
+import { AuthProvider } from './AuthContext';
 import HubPrincipal from './components/HubPrincipal';
 import Login from './components/Login';
-import { limpiarSesion, obtenerSesionGuardada, SESSION_EXPIRED_EVENT } from './lib/api';
+import { useAuth } from './useAuth';
 
-function App() {
-  const [sesion, setSesion] = useState(() => obtenerSesionGuardada());
-
-  const cerrarSesion = () => {
-    limpiarSesion();
-    setSesion(null);
-  };
-
-  useEffect(() => {
-    const manejarSesionExpirada = () => setSesion(null);
-    window.addEventListener(SESSION_EXPIRED_EVENT, manejarSesionExpirada);
-    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, manejarSesionExpirada);
-  }, []);
+function AppContent() {
+  const { sesion, login, logout } = useAuth();
 
   return sesion
-    ? <HubPrincipal sesion={sesion} onLogout={cerrarSesion} />
-    : <Login onLoginExitoso={setSesion} />;
+    ? <HubPrincipal sesion={sesion} onLogout={logout} />
+    : <Login onLoginExitoso={login} />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }
 
 export default App;

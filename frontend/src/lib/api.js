@@ -1,25 +1,16 @@
+import {
+  SESSION_EXPIRED_EVENT,
+  cerrarSesion,
+  crearSesion,
+  guardarSesion,
+  obtenerSesion,
+} from '../auth';
+
 export const API_URL = 'http://localhost:8000';
 
-const SESSION_KEY = 'stoko_sesion';
-export const SESSION_EXPIRED_EVENT = 'stoko:sesion-expirada';
-
-export function guardarSesion(sesion) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(sesion));
-}
-
-export function obtenerSesionGuardada() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    localStorage.removeItem(SESSION_KEY);
-    return null;
-  }
-}
-
-export function limpiarSesion() {
-  localStorage.removeItem(SESSION_KEY);
-}
+export { SESSION_EXPIRED_EVENT, cerrarSesion, guardarSesion, obtenerSesion };
+export const obtenerSesionGuardada = obtenerSesion;
+export const limpiarSesion = cerrarSesion;
 
 export async function iniciarSesion(email, password) {
   const body = new URLSearchParams();
@@ -37,19 +28,16 @@ export async function iniciarSesion(email, password) {
     throw new Error(data.detail || 'No se pudo iniciar sesión');
   }
 
-  const sesion = {
-    token: data.access_token,
-    usuario: {
-      id: data.usuario_id,
-      nombre: data.nombre,
-      rol: data.rol,
-    },
-  };
+  const sesion = crearSesion(data.access_token, {
+    id: data.usuario_id,
+    nombre: data.nombre,
+    rol: data.rol,
+  });
   guardarSesion(sesion);
   return sesion;
 }
 
-export async function authFetch(path, sesion, options = {}) {
+export async function apiFetch(path, options = {}, sesion = obtenerSesion()) {
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && options.body) {
     headers.set('Content-Type', 'application/json');
@@ -64,9 +52,13 @@ export async function authFetch(path, sesion, options = {}) {
   });
 
   if (res.status === 401) {
-    limpiarSesion();
+    cerrarSesion();
     window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
   }
 
   return res;
+}
+
+export async function authFetch(path, sesion, options = {}) {
+  return apiFetch(path, options, sesion);
 }

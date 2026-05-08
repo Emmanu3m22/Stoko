@@ -14,6 +14,7 @@ export default function ListaProductos({
   onAgregarCat, 
   onEliminarCat,
   onActualizarCat,
+  puedeAdministrar = false,
   mostrarNotificacion 
 }) {
   // Estado para la pestaña activa: 'productos' o 'categorias'
@@ -118,8 +119,9 @@ export default function ListaProductos({
           </div>
         </div>
         
-        <div className="flex gap-3">
-          {tabActiva === 'productos' ? (
+        {puedeAdministrar && (
+          <div className="flex gap-3">
+            {tabActiva === 'productos' ? (
             <button
               id="btn-nuevo-producto"
               onClick={abrirModalNuevo}
@@ -130,7 +132,7 @@ export default function ListaProductos({
               </svg>
               Nuevo Producto
             </button>
-          ) : (
+            ) : (
             <button
               onClick={abrirModalCatNuevo}
               className="flex items-center gap-2 bg-gray-900 hover:bg-black active:scale-95 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-gray-200 transition-all duration-150 font-bold text-sm"
@@ -140,8 +142,9 @@ export default function ListaProductos({
               </svg>
               Nueva Categoría
             </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {tabActiva === 'productos' ? (
@@ -203,7 +206,7 @@ export default function ListaProductos({
                     <th className="py-4 px-6">Precio</th>
                     <th className="py-4 px-6">Stock</th>
                     <th className="py-4 px-6">Código</th>
-                    <th className="py-4 px-6 text-right">Acciones</th>
+                    {puedeAdministrar && <th className="py-4 px-6 text-right">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -235,22 +238,24 @@ export default function ListaProductos({
                           </div>
                         </td>
                         <td className="py-4 px-6 font-mono text-[11px] text-gray-400">{producto.codigo_barras}</td>
-                        <td className="py-4 px-6">
-                          <div className="flex justify-end gap-2">
-                            <button onClick={() => abrirModalEditar(producto)}
-                              className="p-2 text-gray-400 hover:text-[#4169E1] hover:bg-blue-50 rounded-lg transition-all">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
-                            <button onClick={() => onEliminar(idReal)}
-                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
+                        {puedeAdministrar && (
+                          <td className="py-4 px-6">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => abrirModalEditar(producto)}
+                                className="p-2 text-gray-400 hover:text-[#4169E1] hover:bg-blue-50 rounded-lg transition-all">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button onClick={() => onEliminar(idReal)}
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -278,7 +283,7 @@ export default function ListaProductos({
                 <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 bg-gray-50/10">
                   <th className="py-4 px-6">Nombre de Categoría</th>
                   <th className="py-4 px-6">Uso</th>
-                  <th className="py-4 px-6 text-right">Acciones</th>
+                  {puedeAdministrar && <th className="py-4 px-6 text-right">Acciones</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -294,22 +299,24 @@ export default function ListaProductos({
                         {productos.filter(p => (p.id_categoria || p.categoria?.id_categoria) === cat.id_categoria).length} productos
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => abrirModalCatEditar(cat)}
-                          className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                        <button onClick={() => onEliminarCat(cat.id_categoria)}
-                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
+                    {puedeAdministrar && (
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => abrirModalCatEditar(cat)}
+                            className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button onClick={() => onEliminarCat(cat.id_categoria)}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -337,7 +344,7 @@ export default function ListaProductos({
       )}
 
       {/* MODAL NUEVA/EDITAR CATEGORÍA */}
-      {mostrarModalCat && (
+      {puedeAdministrar && mostrarModalCat && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-[fadeIn_0.2s_ease-out]">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
             <div className="bg-gray-900 px-8 py-6 text-white">
@@ -368,7 +375,7 @@ export default function ListaProductos({
       )}
 
       {/* VENTANA MODAL AÑADIR/EDITAR PRODUCTO */}
-      {mostrarModal && (
+      {puedeAdministrar && mostrarModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-[fadeIn_0.2s_ease-out]">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
             <div className="bg-[#4169E1] px-8 py-6 text-white">

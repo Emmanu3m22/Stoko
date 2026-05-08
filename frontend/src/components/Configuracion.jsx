@@ -33,6 +33,22 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
     mostrarNotificacion("¡Configuración guardada exitosamente!");
   };
 
+  if (!esAdministrador) {
+    return (
+      <div className="p-8 w-full min-h-screen font-sans">
+        <div className="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 mb-2">
+            Acceso restringido
+          </p>
+          <h1 className="text-2xl font-black text-gray-900 mb-2">Solo administradores</h1>
+          <p className="text-sm text-amber-800">
+            Tu rol actual no tiene permisos para gestionar configuración, auditorías o usuarios.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 w-full min-h-screen font-sans">
       <div className="mb-6">
