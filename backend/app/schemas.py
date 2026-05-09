@@ -179,28 +179,6 @@ class VentaResumen(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────
-# CORTES DE CAJA
-# ─────────────────────────────────────────────────────────────
-
-class CorteApertura(BaseModel):
-    pass  # Solo se necesita el usuario autenticado
-
-class CorteCierre(BaseModel):
-    efectivo_real: float = Field(..., ge=0)
-
-class CorteResponse(BaseModel):
-    id_corte:       int
-    fecha_apertura: datetime
-    fecha_cierre:   Optional[datetime]
-    total_ventas:   float
-    efectivo_real:  Optional[float]
-    diferencia:     Optional[float]
-    estado:         str
-    id_usuario:     int
-    model_config    = {"from_attributes": True}
-
-
-# ─────────────────────────────────────────────────────────────
 # INCIDENCIAS
 # ─────────────────────────────────────────────────────────────
 
@@ -220,6 +198,30 @@ class IncidenciaResponse(BaseModel):
     id_corte:      Optional[int]
     producto:      ProductoResumen
     model_config   = {"from_attributes": True}
+
+
+# ─────────────────────────────────────────────────────────────
+# CORTES DE CAJA
+# ─────────────────────────────────────────────────────────────
+
+class CorteApertura(BaseModel):
+    pass  # Solo se necesita el usuario autenticado
+
+class CorteCierre(BaseModel):
+    efectivo_real: float = Field(..., ge=0)
+
+class CorteResponse(BaseModel):
+    id_corte:       int
+    fecha_apertura: datetime
+    fecha_cierre:   Optional[datetime]
+    total_ventas:   float
+    efectivo_real:  Optional[float]
+    diferencia:     Optional[float]
+    estado:         str
+    id_usuario:     int
+    ventas:         List[VentaResumen] = []
+    incidencias:    List[IncidenciaResponse] = []
+    model_config    = {"from_attributes": True}
 
 
 # ─────────────────────────────────────────────────────────────
