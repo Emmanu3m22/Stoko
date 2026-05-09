@@ -25,6 +25,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
 
   const [modalEdicion, setModalEdicion] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
+  const [errorEdicion, setErrorEdicion] = useState('');
 
   const cargarUsuarios = useCallback(async () => {
     if (!esAdministrador) return;
@@ -89,11 +90,13 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       id_rol: u.rol?.id_rol || 2,
       password: ''
     });
+    setErrorEdicion('');
     setModalEdicion(true);
   };
 
   const guardarEdicion = async (e) => {
     e.preventDefault();
+    setErrorEdicion('');
     try {
       const payload = {
         nombre: usuarioEditando.nombre,
@@ -102,7 +105,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       };
       if (usuarioEditando.password) {
         if (usuarioEditando.password.length < 6) {
-          mostrarNotificacion('La contraseña debe tener mínimo 6 caracteres.', 'error');
+          setErrorEdicion('La contraseña debe tener mínimo 6 caracteres.');
           return;
         }
         payload.password = usuarioEditando.password;
@@ -311,6 +314,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Contraseña (opcional)</label>
                 <input type="password" value={usuarioEditando.password} onChange={(e) => setUsuarioEditando({...usuarioEditando, password: e.target.value})} placeholder="Dejar en blanco para no cambiar" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 outline-none text-sm" />
+                {errorEdicion && <p className="text-red-500 text-xs font-semibold mt-1">{errorEdicion}</p>}
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Rol</label>
