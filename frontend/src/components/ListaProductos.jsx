@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 // Datos y lógica de fetch viven en HubPrincipal.
 // Este componente solo recibe props y renderiza.
-const STOCK_BAJO = 10;
 
 export default function ListaProductos({ 
   productos = [], 
@@ -32,7 +31,7 @@ export default function ListaProductos({
   // ── Acciones de Productos ──────────────────────────────────────────────────
   const abrirModalNuevo = () => {
     setEditando(null);
-    setForm({ nombre: '', categoria: '', precio: '', stock: '', codigo: '' });
+    setForm({ nombre: '', categoria: '', precio: '', stock: '', codigo: '', stock_minimo: '5' });
     setMostrarModal(true);
   };
 
@@ -43,7 +42,8 @@ export default function ListaProductos({
       categoria: typeof p.categoria === 'object' ? p.categoria?.id_categoria : p.id_categoria,
       precio: String(p.precio_unitario),
       stock: String(p.stock_actual),
-      codigo: p.codigo_barras
+      codigo: p.codigo_barras,
+      stock_minimo: String(p.stock_minimo || '5')
     });
     setMostrarModal(true);
   };
@@ -155,7 +155,7 @@ export default function ListaProductos({
               { label: 'Total productos',   value: productos.length,
                 icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
                 color: 'text-[#4169E1]', bg: 'bg-blue-50' },
-              { label: 'Stock bajo (< 10)', value: productos.filter((p) => p.stock_actual < STOCK_BAJO).length,
+              { label: 'Stock bajo', value: productos.filter((p) => p.stock_actual < (p.stock_minimo || 5)).length,
                 icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
                 color: 'text-amber-500', bg: 'bg-amber-50' },
               { label: 'Valor inventario',
@@ -213,7 +213,7 @@ export default function ListaProductos({
                   {productos
                     .filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo_barras.toLowerCase().includes(filtro.toLowerCase()))
                     .map((producto) => {
-                    const stockBajo = producto.stock_actual < STOCK_BAJO;
+                    const stockBajo = producto.stock_actual < (producto.stock_minimo || 5);
                     const idReal = producto.id_producto || producto.id;
                     return (
                       <tr key={idReal} className="hover:bg-blue-50/30 transition-colors group">
@@ -394,30 +394,35 @@ export default function ListaProductos({
                   <input required type="number" step="0.01" min="0" value={form.precio} onChange={e => setForm({...form, precio: e.target.value})} className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-[#4169E1] outline-none transition-all text-sm font-bold text-gray-900" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Stock Inicial</label>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Stock Actual</label>
                   <input required type="number" min="0" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-[#4169E1] outline-none transition-all text-sm font-bold text-gray-900" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Categoría</label>
-                  <select 
-                    required 
-                    value={form.categoria} 
-                    onChange={e => setForm({...form, categoria: e.target.value})} 
-                    className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-[#4169E1] outline-none transition-all text-sm font-bold text-gray-900 appearance-none"
-                  >
-                    <option value="">Seleccionar...</option>
-                    {categorias.map((cat) => (
-                      <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre}</option>
-                    ))}
-                  </select>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Stock Mínimo</label>
+                  <input required type="number" min="0" value={form.stock_minimo} onChange={e => setForm({...form, stock_minimo: e.target.value})} className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-[#4169E1] outline-none transition-all text-sm font-bold text-gray-900" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Código de barras</label>
                   <input required type="text" value={form.codigo} onChange={e => setForm({...form, codigo: e.target.value})} className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-[#4169E1] outline-none transition-all text-sm font-bold text-gray-900" />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Categoría</label>
+                <select 
+                  required 
+                  value={form.categoria} 
+                  onChange={e => setForm({...form, categoria: e.target.value})} 
+                  className="w-full px-5 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-[#4169E1] outline-none transition-all text-sm font-bold text-gray-900 appearance-none"
+                >
+                  <option value="">Seleccionar...</option>
+                  {categorias.map((cat) => (
+                    <option key={cat.id_categoria} value={cat.id_categoria}>{cat.nombre}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-3 pt-6 border-t border-gray-100">
