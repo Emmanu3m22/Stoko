@@ -55,6 +55,11 @@ def registrar_venta(
             raise HTTPException(status_code=400, detail="El corte indicado no existe o está cerrado")
         if corte.id_usuario != current_user.id_usuario:
             raise HTTPException(status_code=403, detail="No puedes registrar ventas en el corte de otro usuario")
+    else:
+        corte = db.query(models.CorteCaja).filter(
+            models.CorteCaja.id_usuario == current_user.id_usuario,
+            models.CorteCaja.estado == "abierto",
+        ).first()
 
     for item in datos.items:
         producto = db.query(models.Producto).filter(
@@ -96,7 +101,7 @@ def registrar_venta(
         total=total,
         metodo_pago=datos.metodo_pago,
         id_usuario=current_user.id_usuario,
-        id_corte=datos.id_corte,
+        id_corte=corte.id_corte if corte else None,
     )
     db.add(venta)
     db.flush()  # Obtener id_venta antes del commit

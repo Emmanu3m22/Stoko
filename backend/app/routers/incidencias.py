@@ -51,10 +51,15 @@ def registrar_incidencia(
 
     producto.stock_actual = nuevo_stock
 
+    corte = db.query(models.CorteCaja).filter(
+        models.CorteCaja.id_usuario == current_user.id_usuario,
+        models.CorteCaja.estado == "abierto",
+    ).first()
+
     incidencia = models.Incidencia(
         id_producto=datos.id_producto,
         id_usuario=current_user.id_usuario,
-        id_corte=datos.id_corte,
+        id_corte=datos.id_corte if datos.id_corte else (corte.id_corte if corte else None),
         cantidad=datos.cantidad,
         causa=datos.causa,
     )
