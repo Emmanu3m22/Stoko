@@ -7,8 +7,6 @@ import { authFetch } from '../lib/api';
 import { ROLES, esAdministrador as usuarioEsAdministrador, normalizarRol } from '../auth';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
-const STOCK_MIN = 10;
-
 // PRODUCTOS_MOCK eliminado — el sistema ahora es 100% real.
 
 
@@ -52,7 +50,7 @@ const MENU = [
 // ── Dashboard (usa datos reales) ─────────────────────────────────────────────
 function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
   const total        = productos.length;
-  const stockBajos   = productos.filter((p) => p.stock_actual < STOCK_MIN);
+  const stockBajos   = productos.filter((p) => p.stock_actual < (p.stock_minimo || 5));
   const valorInv     = productos.reduce((a, p) => a + p.precio_unitario * p.stock_actual, 0);
   const fmt          = (n) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
 
@@ -114,7 +112,7 @@ function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
             <div>
               <p className="text-sm font-bold text-amber-700">Alerta de inventario</p>
               <p className="text-xs text-amber-600">
-                {stockBajos.length} producto{stockBajos.length !== 1 ? 's' : ''} con stock por debajo del mínimo ({STOCK_MIN} unidades)
+                {stockBajos.length} producto{stockBajos.length !== 1 ? 's' : ''} con stock por debajo del mínimo configurado
               </p>
             </div>
             <button
@@ -302,6 +300,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
         codigo_barras: prod.codigo.trim(),
         precio_unitario: Number(prod.precio),
         stock_actual: Number.parseInt(prod.stock, 10),
+        stock_minimo: Number.parseInt(prod.stock_minimo || '5', 10),
         id_categoria: prod.categoria ? Number(prod.categoria) : null,
       };
       const res = await authFetch(`/api/v1/productos/${id}`, sesion, {
