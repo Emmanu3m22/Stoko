@@ -2,9 +2,11 @@
 routers/reportes.py — Endpoints de reportes avanzados e insights con IA.
 """
 
-from datetime import datetime, time
+import io
+from datetime import datetime, time, date
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -12,29 +14,19 @@ from app import models, schemas
 from app.core.deps import require_admin
 from app.database import get_db
 from app.services.ia_service import IAServiceError, generar_insights
+from app.services import exportacion_service
 
 router = APIRouter(prefix="/api/v1/reportes", tags=["Reportes"])
 
-
-@router.post("/insights", response_model=schemas.InsightsResponse)
-def generar_reporte_insights(
-    datos: schemas.InsightsRequest,
-    db: Session = Depends(get_db),
-    _admin: models.Usuario = Depends(require_admin),
-):
-    """
-    Generar recomendaciones estratégicas con IA a partir de ventas y mermas.
-
-    El endpoint está restringido a administradores y usa datos reales del periodo.
-    """
-    if datos.fecha_fin < datos.fecha_inicio:
+def obtener_datos_periodo(db: Session, fecha_inicio: date, fecha_fin: date):
+    if fecha_fin < fecha_inicio:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="La fecha final no puede ser anterior a la fecha inicial",
         )
 
-    inicio = datetime.combine(datos.fecha_inicio, time.min)
-    fin = datetime.combine(datos.fecha_fin, time.max)
+    inicio = datetime.combine(fecha_inicio, time.min)
+    fin = datetime.combine(fecha_fin, time.max)
 
     resumen_ventas = db.query(
         func.count(models.Venta.id_venta).label("num_ventas"),
@@ -114,8 +106,8 @@ def generar_reporte_insights(
 
     datos_ventas = {
         "periodo": {
-            "fecha_inicio": datos.fecha_inicio.isoformat(),
-            "fecha_fin": datos.fecha_fin.isoformat(),
+            "fecha_inicio": fecha_inicio.isoformat(),
+            "fecha_fin": fecha_fin.isoformat(),
         },
         "resumen": {
             "num_ventas": int(resumen_ventas.num_ventas or 0),
@@ -177,6 +169,19 @@ def generar_reporte_insights(
             for p in stock_bajo
         ],
     }
+    
+    return datos_ventas, datos_mermas
+
+@router.post("/insights", response_model=schemas.InsightsResponse)
+def generar_reporte_insights(
+    datos: schemas.InsightsRequest,
+    db: Session = Depends(get_db),
+    _admin: models.Usuario = Depends(require_admin),
+):
+    """
+    Generar recomendaciones estratégicas con IA a partir de ventas y mermas.
+    """
+    datos_ventas, datos_mermas = obtener_datos_periodo(db, datos.fecha_inicio, datos.fecha_fin)
 
     try:
         insights = generar_insights(datos_ventas, datos_mermas)
@@ -190,4 +195,32 @@ def generar_reporte_insights(
         fecha_inicio=datos.fecha_inicio,
         fecha_fin=datos.fecha_fin,
         insights=insights,
+    )
+
+@router.get("/exportar")
+def exportar_reporte(
+    fecha_inicio: date = Query(...),
+    fecha_fin: date = Query(...),
+    formato: str = Query(..., pattern="^(pdf|excel)$"),
+    db: Session = Depends(get_db),
+    _admin: models.Usuario = Depends(require_admin),
+):
+    """
+    Exporta el reporte de ventas y movimientos en PDF o Excel.
+    """
+    datos_ventas, _ = obtener_datos_periodo(db, fecha_inicio, fecha_fin)
+
+    if formato == "pdf":
+        archivo_bytes = exportacion_service.generar_pdf(datos_ventas)
+        media_type = "application/pdf"
+        filename = f"reporte_{fecha_inicio}_a_{fecha_fin}.pdf"
+    else:
+        archivo_bytes = exportacion_service.generar_excel(datos_ventas)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"reporte_{fecha_inicio}_a_{fecha_fin}.xlsx"
+
+    return StreamingResponse(
+        io.BytesIO(archivo_bytes),
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )

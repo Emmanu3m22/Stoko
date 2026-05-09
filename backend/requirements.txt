@@ -7,3 +7,5 @@ passlib[bcrypt]
 python-multipart
 aiosqlite
 google-genai
+reportlab
+openpyxl

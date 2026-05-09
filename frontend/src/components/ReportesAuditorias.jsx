@@ -12,6 +12,11 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   const [operacionFiltro, setOperacionFiltro] = useState('');
   const limit = 20;
 
+  // Estado para exportación
+  const [fechaInicioExp, setFechaInicioExp] = useState(new Date().toISOString().split('T')[0]);
+  const [fechaFinExp, setFechaFinExp] = useState(new Date().toISOString().split('T')[0]);
+  const [descargando, setDescargando] = useState(false);
+
   const [corteActivo, setCorteActivo] = useState(null);
   const [cargandoCorte, setCargandoCorte] = useState(false);
   const [efectivoReal, setEfectivoReal] = useState('');
@@ -135,6 +140,44 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
     }
   };
 
+  const descargarReporte = async (formato) => {
+    if (!fechaInicioExp || !fechaFinExp) {
+      mostrarNotificacion('Selecciona un rango de fechas válido', 'warning');
+      return;
+    }
+    setDescargando(true);
+    try {
+      const token = sesion?.token;
+      // Usamos fetch directamente para manejar el blob, o window.open si el token puede enviarse por query,
+      // pero como es API segura, hacemos fetch de blob y forzamos descarga:
+      const res = await fetch(`http://127.0.0.1:8000/api/v1/reportes/exportar?fecha_inicio=${fechaInicioExp}&fecha_fin=${fechaFinExp}&formato=${formato}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Error al generar el reporte');
+      }
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte_ventas_${fechaInicioExp}_al_${fechaFinExp}.${formato === 'pdf' ? 'pdf' : 'xlsx'}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      mostrarNotificacion(`Reporte en ${formato.toUpperCase()} descargado exitosamente`, 'success');
+    } catch (e) {
+      console.error(e);
+      mostrarNotificacion(e.message || 'Error de conexión al descargar el reporte', 'error');
+    } finally {
+      setDescargando(false);
+    }
+  };
+
   if (!esAdministrador) {
     return (
       <div className="p-8 w-full min-h-screen font-sans">
@@ -191,12 +234,20 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
             IA Insights (Gemini)
           </button>
           {esAdministrador && (
-            <button 
-              onClick={() => { setPestaña('auditoria'); setSkip(0); }}
-              className={`font-semibold pb-2 ${pestaña === 'auditoria' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
-            >
-              Historial de Operaciones
-            </button>
+            <>
+              <button 
+                onClick={() => setPestaña('exportar')}
+                className={`font-semibold pb-2 ${pestaña === 'exportar' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+              >
+                Exportar Reportes
+              </button>
+              <button 
+                onClick={() => { setPestaña('auditoria'); setSkip(0); }}
+                className={`font-semibold pb-2 ${pestaña === 'auditoria' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+              >
+                Historial de Operaciones
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -554,6 +605,61 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
             >
               Siguiente →
             </button>
+          </div>
+        </div>
+      )}
+
+      {pestaña === 'exportar' && esAdministrador && (
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 animate-[fadeIn_0.3s_ease-out] max-w-2xl mx-auto mt-8">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[#4169E1]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Exportar Reportes (RF13)</h2>
+            <p className="text-gray-500 mt-2">Genera un documento con el balance de ventas, productos más vendidos y desglose de mermas en el formato que necesites.</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de Inicio</label>
+                <input 
+                  type="date" 
+                  value={fechaInicioExp}
+                  onChange={(e) => setFechaInicioExp(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#4169E1] outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha Final</label>
+                <input 
+                  type="date" 
+                  value={fechaFinExp}
+                  onChange={(e) => setFechaFinExp(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#4169E1] outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100">
+              <button 
+                onClick={() => descargarReporte('pdf')}
+                disabled={descargando}
+                className="flex-1 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"/></svg>
+                {descargando ? 'Generando...' : 'Descargar PDF'}
+              </button>
+              
+              <button 
+                onClick={() => descargarReporte('excel')}
+                disabled={descargando}
+                className="flex-1 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                {descargando ? 'Generando...' : 'Descargar Excel'}
+              </button>
+            </div>
           </div>
         </div>
       )}
