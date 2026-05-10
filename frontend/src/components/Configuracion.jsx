@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import GestionCategorias from './GestionCategorias';
+
 import { authFetch } from '../lib/api';
 
 async function leerRespuesta(res) {
@@ -177,14 +177,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
           >
             Gestión de Usuarios
           </button>
-          {esAdministrador && (
-            <button
-              onClick={() => setPestaña('categorias')}
-              className={`font-semibold pb-2 ${pestaña === 'categorias' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
-            >
-              Categorías
-            </button>
-          )}
+
         </div>
       </div>
 
@@ -293,9 +286,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
         </div>
       )}
 
-      {pestaña === 'categorias' && esAdministrador && (
-        <GestionCategorias sesion={sesion} mostrarNotificacion={mostrarNotificacion} />
-      )}
+
 
       {/* Modal de Edición */}
       {modalEdicion && usuarioEditando && (

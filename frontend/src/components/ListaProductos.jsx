@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { authFetch } from '../lib/api';
 
 // Datos y lógica de fetch viven en HubPrincipal.
 // Este componente solo recibe props y renderiza.
@@ -14,11 +15,58 @@ export default function ListaProductos({
   onEliminarCat,
   onActualizarCat,
   puedeAdministrar = false,
-  mostrarNotificacion 
+  mostrarNotificacion,
+  sesion
 }) {
   // Estado para la pestaña activa: 'productos' o 'categorias'
   const [tabActiva, setTabActiva] = useState('productos');
-  const [filtro, setFiltro] = useState('');
+  const [filtroCat, setFiltroCat] = useState('');
+  
+  // Estados RF03
+  const [busqueda, setBusqueda] = useState('');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
+  const [soloStockBajo, setSoloStockBajo] = useState(false);
+  const [productosLocales, setProductosLocales] = useState(productos);
+  const [cargandoLocales, setCargandoLocales] = useState(cargando);
+
+  useEffect(() => {
+    if (!busqueda && !categoriaSeleccionada && !soloStockBajo) {
+      setProductosLocales(productos);
+      setCargandoLocales(cargando);
+    }
+  }, [productos, cargando, busqueda, categoriaSeleccionada, soloStockBajo]);
+
+  useEffect(() => {
+    const fetchFiltrados = async () => {
+      setCargandoLocales(true);
+      try {
+        const params = new URLSearchParams();
+        if (busqueda) params.append('busqueda', busqueda);
+        if (categoriaSeleccionada) params.append('categoria', categoriaSeleccionada);
+        if (soloStockBajo) params.append('stock_bajo', 'true');
+
+        const res = await authFetch(`/api/v1/productos/?${params.toString()}`, sesion);
+        if (res.ok) {
+          const data = await res.json();
+          setProductosLocales(data.map(p => ({
+            ...p,
+            id: p.id ?? p.id_producto,
+            categoria: typeof p.categoria === 'string' ? p.categoria : p.categoria?.nombre || 'Sin categoría'
+          })));
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setCargandoLocales(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchFiltrados();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [busqueda, categoriaSeleccionada, soloStockBajo, sesion]);
   
   // Estado para las ventanas modales
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -104,14 +152,14 @@ export default function ListaProductos({
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Catálogos de Sistema</p>
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => { setTabActiva('productos'); setFiltro(''); }}
+              onClick={() => { setTabActiva('productos'); setBusqueda(''); setCategoriaSeleccionada(''); setSoloStockBajo(false); }}
               className={`text-2xl font-black transition-all ${tabActiva === 'productos' ? 'text-gray-900 scale-100' : 'text-gray-300 hover:text-gray-400 scale-95'}`}
             >
               Productos
             </button>
             <span className="text-2xl font-thin text-gray-200">/</span>
             <button 
-              onClick={() => { setTabActiva('categorias'); setFiltro(''); }}
+              onClick={() => { setTabActiva('categorias'); setFiltroCat(''); }}
               className={`text-2xl font-black transition-all ${tabActiva === 'categorias' ? 'text-gray-900 scale-100' : 'text-gray-300 hover:text-gray-400 scale-95'}`}
             >
               Categorías
@@ -179,21 +227,44 @@ export default function ListaProductos({
 
           {/* ── Tabla Productos ── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                {cargando ? 'Cargando…' : `${productos.length} registros encontrados`}
+            <div className="px-6 py-4 border-b border-gray-50 flex flex-wrap items-center justify-between bg-gray-50/30 gap-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest w-full md:w-auto">
+                {cargandoLocales ? 'Cargando…' : `${productosLocales.length} registros encontrados`}
               </p>
-              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input 
-                  type="text" 
-                  placeholder="Filtrar catálogo…"
-                  value={filtro}
-                  onChange={(e) => setFiltro(e.target.value)}
-                  className="bg-transparent text-sm text-gray-600 outline-none placeholder-gray-300 w-48 font-medium" 
-                />
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={soloStockBajo}
+                    onChange={(e) => setSoloStockBajo(e.target.checked)}
+                    className="w-4 h-4 text-[#4169E1] rounded border-gray-300 focus:ring-[#4169E1]"
+                  />
+                  <span className="text-sm font-medium text-gray-600">Solo stock bajo</span>
+                </label>
+
+                <select 
+                  value={categoriaSeleccionada}
+                  onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+                  className="bg-white border border-gray-200 text-sm text-gray-600 rounded-xl px-3 py-1.5 outline-none shadow-sm font-medium"
+                >
+                  <option value="">Todas las categorías</option>
+                  {categorias.map(c => (
+                    <option key={c.id_categoria} value={c.id_categoria}>{c.nombre}</option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input 
+                    type="text" 
+                    placeholder="Buscar por nombre o código…"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    className="bg-transparent text-sm text-gray-600 outline-none placeholder-gray-300 w-48 font-medium" 
+                  />
+                </div>
               </div>
             </div>
 
@@ -210,9 +281,13 @@ export default function ListaProductos({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {productos
-                    .filter(p => p.nombre.toLowerCase().includes(filtro.toLowerCase()) || p.codigo_barras.toLowerCase().includes(filtro.toLowerCase()))
-                    .map((producto) => {
+                  {productosLocales.length === 0 ? (
+                    <tr>
+                      <td colSpan={puedeAdministrar ? 6 : 5} className="py-8 text-center text-gray-500 font-medium">
+                        No se encontraron productos que coincidan con los filtros aplicados.
+                      </td>
+                    </tr>
+                  ) : productosLocales.map((producto) => {
                     const stockBajo = producto.stock_actual < (producto.stock_minimo || 5);
                     const idReal = producto.id_producto || producto.id;
                     return (
@@ -273,8 +348,8 @@ export default function ListaProductos({
               <input 
                 type="text" 
                 placeholder="Buscar categoría..." 
-                value={filtro}
-                onChange={(e) => setFiltro(e.target.value)}
+                value={filtroCat}
+                onChange={(e) => setFiltroCat(e.target.value)}
                 className="text-xs bg-white border border-gray-200 rounded-lg px-3 py-1 outline-none focus:border-gray-900 transition-colors w-40"
               />
             </div>
@@ -288,7 +363,7 @@ export default function ListaProductos({
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {categorias
-                  .filter(c => c.nombre.toLowerCase().includes(filtro.toLowerCase()))
+                  .filter(c => c.nombre.toLowerCase().includes(filtroCat.toLowerCase()))
                   .map((cat) => (
                   <tr key={cat.id_categoria} className="hover:bg-gray-50 transition-colors">
                     <td className="py-4 px-6">

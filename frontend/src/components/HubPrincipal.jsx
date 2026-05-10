@@ -394,6 +394,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
           onActualizarCat={actualizarCategoria}
           puedeAdministrar={esAdministrador}
           mostrarNotificacion={mostrarNotificacion} 
+          sesion={sesion}
         />
       );
       case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} onVentaRegistrada={fetchProductos} mostrarNotificacion={mostrarNotificacion} />;
