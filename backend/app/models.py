@@ -19,9 +19,8 @@ import enum
 from app.database import Base
 
 
-# ─────────────────────────────────────────────────────────────
+
 # ENUMERACIONES
-# ─────────────────────────────────────────────────────────────
 
 class MetodoPagoEnum(str, enum.Enum):
     efectivo    = "efectivo"
@@ -45,9 +44,8 @@ class TipoOperacionEnum(str, enum.Enum):
     registrar_incidencia = "registrar_incidencia"
 
 
-# ─────────────────────────────────────────────────────────────
+
 # ROLES
-# ─────────────────────────────────────────────────────────────
 
 class Rol(Base):
     """
@@ -66,9 +64,8 @@ class Rol(Base):
         return f"<Rol(id={self.id_rol}, nombre='{self.nombre}')>"
 
 
-# ─────────────────────────────────────────────────────────────
+
 # USUARIOS
-# ─────────────────────────────────────────────────────────────
 
 class Usuario(Base):
     """
@@ -95,9 +92,8 @@ class Usuario(Base):
         return f"<Usuario(id={self.id_usuario}, email='{self.email}')>"
 
 
-# ─────────────────────────────────────────────────────────────
+
 # CATEGORÍAS
-# ─────────────────────────────────────────────────────────────
 
 class Categoria(Base):
     """Clasificación jerárquica de productos."""
@@ -115,9 +111,8 @@ class Categoria(Base):
         return f"<Categoria(id={self.id_categoria}, nombre='{self.nombre}')>"
 
 
-# ─────────────────────────────────────────────────────────────
+
 # PRODUCTOS
-# ─────────────────────────────────────────────────────────────
 
 class Producto(Base):
     """
@@ -145,9 +140,8 @@ class Producto(Base):
         return f"<Producto(id={self.id_producto}, nombre='{self.nombre}', stock={self.stock_actual})>"
 
 
-# ─────────────────────────────────────────────────────────────
+
 # CORTES DE CAJA
-# ─────────────────────────────────────────────────────────────
 
 class CorteCaja(Base):
     """
@@ -175,9 +169,7 @@ class CorteCaja(Base):
         return f"<CorteCaja(id={self.id_corte}, estado='{self.estado}')>"
 
 
-# ─────────────────────────────────────────────────────────────
 # VENTAS
-# ─────────────────────────────────────────────────────────────
 
 class Venta(Base):
     """
@@ -205,10 +197,8 @@ class Venta(Base):
         return f"<Venta(id={self.id_venta}, total={self.total}, anulada={self.anulada})>"
 
 
-# ─────────────────────────────────────────────────────────────
-# DETALLE DE VENTA
-# ─────────────────────────────────────────────────────────────
 
+# DETALLE DE VENTA
 class DetalleVenta(Base):
     """
     Línea de producto dentro de una venta.
@@ -232,9 +222,8 @@ class DetalleVenta(Base):
         return f"<DetalleVenta(id={self.id_detalle}, producto={self.id_producto}, qty={self.cantidad})>"
 
 
-# ─────────────────────────────────────────────────────────────
+
 # INCIDENCIAS DE INVENTARIO
-# ─────────────────────────────────────────────────────────────
 
 class Incidencia(Base):
     """
@@ -260,9 +249,8 @@ class Incidencia(Base):
         return f"<Incidencia(id={self.id_incidencia}, producto={self.id_producto}, qty={self.cantidad})>"
 
 
-# ─────────────────────────────────────────────────────────────
+
 # LOG DE AUDITORÍAS
-# ─────────────────────────────────────────────────────────────
 
 class LogAuditoria(Base):
     """

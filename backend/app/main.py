@@ -17,10 +17,10 @@ from app.models import (
     Venta, DetalleVenta, CorteCaja, Incidencia, LogAuditoria
 )
 
-# ─── Crear todas las tablas ────────────────────────────────────────────────────
+# Crear todas las tablas 
 models.Base.metadata.create_all(bind=engine)
 
-# ─── Crear la aplicación ──────────────────────────────────────────────────────
+# Crear la aplicación
 app = FastAPI(
     title="Stoko API",
     description=(
@@ -32,7 +32,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# ─── CORS ─────────────────────────────────────────────────────────────────────
+# CORS 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -46,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Registrar routers ────────────────────────────────────────────────────────
+# Registrar routers 
 from app.routers import auth, usuarios, categorias, productos, ventas, cortes, incidencias, auditorias, reportes
 
 app.include_router(auth.router)
@@ -60,7 +60,7 @@ app.include_router(auditorias.router)
 app.include_router(reportes.router)
 
 
-# ─── Endpoint raíz ────────────────────────────────────────────────────────────
+# Endpoint raíz 
 @app.get("/", tags=["Root"])
 def root():
     return {
@@ -70,7 +70,7 @@ def root():
     }
 
 
-# ─── Endpoint de compatibilidad con el frontend (mock → real) ─────────────────
+# ### Endpoint de compatibilidad con el frontend  
 # El frontend actualmente llama a GET /productos/ sin prefijo /api/v1.
 # Este alias redirige para no romper el frontend mientras se migra.
 from fastapi import Depends
@@ -115,7 +115,7 @@ def crear_producto_compat(datos: schemas.ProductoCreate, db: Session = Depends(g
     return producto
 
 
-# ─── Seed inicial (se ejecuta una vez al arrancar) ────────────────────────────
+# Seed inicial (se ejecuta una vez al arrancar) 
 
 def _seed_database():
     """
@@ -128,7 +128,7 @@ def _seed_database():
 
     db = SessionLocal()
     try:
-        # ── Roles ──────────────────────────────────────────────────────
+        # Roles 
         if db.query(Rol).count() == 0:
             roles = [
                 Rol(nombre="administrador"),
@@ -138,7 +138,7 @@ def _seed_database():
             db.commit()
             print("[Seed] Roles creados: administrador, cajero")
 
-        # ── Usuario administrador ──────────────────────────────────────
+        # Usuario administrador
         if db.query(Usuario).count() == 0:
             rol_admin = db.query(Rol).filter(Rol.nombre == "administrador").first()
             admin = Usuario(
@@ -152,7 +152,7 @@ def _seed_database():
             db.commit()
             print("[Seed] Usuario admin creado → email: admin@stoko.com | pass: admin1234")
 
-        # ── Categorías ────────────────────────────────────────────────
+        # Categorías
         if db.query(Categoria).count() == 0:
             cats = [
                 Categoria(nombre="Relojería"),
@@ -165,7 +165,7 @@ def _seed_database():
             db.commit()
             print("[Seed] Categorías creadas")
 
-        # ── Productos de ejemplo ──────────────────────────────────────
+        #Productos de ejemplo 
         if db.query(Producto).count() == 0:
             cat_map = {c.nombre: c.id_categoria for c in db.query(Categoria).all()}
             productos = [
@@ -213,5 +213,5 @@ def _seed_database():
         db.close()
 
 
-# ─── Ejecutar seed al iniciar ─────────────────────────────────────────────────
+# Ejecutar seed al iniciar 
 _seed_database()

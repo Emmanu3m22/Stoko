@@ -8,7 +8,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# ─── Configuración ────────────────────────────────────────────────────────────
+# Configuración 
 SECRET_KEY  = "stoko-super-secret-key-cambiar-en-produccion"
 ALGORITHM   = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480   # 8 horas
@@ -16,7 +16,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 480   # 8 horas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-# ─── Password ─────────────────────────────────────────────────────────────────
+# Password 
 
 def hash_password(password: str) -> str:
     """Genera el hash bcrypt de un password en texto plano."""
@@ -28,7 +28,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-# ─── JWT ──────────────────────────────────────────────────────────────────────
+# JWT 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Crea un JWT firmado con los datos del usuario."""

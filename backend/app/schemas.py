@@ -11,9 +11,8 @@ from typing import Optional, List
 from pydantic import BaseModel, Field, EmailStr
 
 
-# ─────────────────────────────────────────────────────────────
+
 # AUTH
-# ─────────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -28,9 +27,9 @@ class TokenResponse(BaseModel):
     rol: str
 
 
-# ─────────────────────────────────────────────────────────────
+
 # ROLES
-# ─────────────────────────────────────────────────────────────
+
 
 class RolBase(BaseModel):
     nombre: str = Field(..., min_length=1, max_length=50)
@@ -43,9 +42,8 @@ class RolResponse(RolBase):
     model_config = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────
+
 # USUARIOS
-# ─────────────────────────────────────────────────────────────
 
 class UsuarioCreate(BaseModel):
     nombre:   str       = Field(..., min_length=1, max_length=100)
@@ -69,9 +67,7 @@ class UsuarioResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────
 # CATEGORIAS
-# ─────────────────────────────────────────────────────────────
 
 class CategoriaCreate(BaseModel):
     nombre:      str = Field(..., min_length=1, max_length=100)
@@ -91,9 +87,7 @@ class CategoriaResponse(BaseModel):
     model_config  = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────
 # PRODUCTOS
-# ─────────────────────────────────────────────────────────────
 
 class ProductoBase(BaseModel):
     nombre:          str   = Field(..., min_length=1)
@@ -129,9 +123,8 @@ class ProductoResumen(BaseModel):
     model_config   = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────
+
 # DETALLE DE VENTA
-# ─────────────────────────────────────────────────────────────
 
 class DetalleVentaCreate(BaseModel):
     id_producto: int
@@ -147,9 +140,7 @@ class DetalleVentaResponse(BaseModel):
     model_config      = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────
 # VENTAS
-# ─────────────────────────────────────────────────────────────
 
 class VentaCreate(BaseModel):
     metodo_pago: str = Field("efectivo", pattern="^(efectivo|tarjeta|transferencia)$")
@@ -189,9 +180,7 @@ class VentaReporte(BaseModel):
     productos_top: List[ProductoTopResumen]
 
 
-# ─────────────────────────────────────────────────────────────
 # INCIDENCIAS
-# ─────────────────────────────────────────────────────────────
 
 class IncidenciaCreate(BaseModel):
     id_producto: int
@@ -211,9 +200,7 @@ class IncidenciaResponse(BaseModel):
     model_config   = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────
 # CORTES DE CAJA
-# ─────────────────────────────────────────────────────────────
 
 class CorteApertura(BaseModel):
     pass  # Solo se necesita el usuario autenticado
@@ -235,9 +222,8 @@ class CorteResponse(BaseModel):
     model_config    = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────
+
 # LOG AUDITORIAS
-# ─────────────────────────────────────────────────────────────
 
 class AuditoriaResponse(BaseModel):
     id_auditoria: int
@@ -248,9 +234,8 @@ class AuditoriaResponse(BaseModel):
     model_config  = {"from_attributes": True}
 
 
-# ─────────────────────────────────────────────────────────────
+
 # REPORTES / IA
-# ─────────────────────────────────────────────────────────────
 
 class InsightsRequest(BaseModel):
     fecha_inicio: date
@@ -263,9 +248,7 @@ class InsightsResponse(BaseModel):
     insights:     str
 
 
-# ─────────────────────────────────────────────────────────────
 # RESPUESTA GENÉRICA
-# ─────────────────────────────────────────────────────────────
 
 class MensajeResponse(BaseModel):
     mensaje: str
