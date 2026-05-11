@@ -172,6 +172,21 @@ def obtener_datos_periodo(db: Session, fecha_inicio: date, fecha_fin: date):
     
     return datos_ventas, datos_mermas
 
+@router.get("/ventas")
+def reporte_ventas(
+    fecha_inicio: date = Query(...),
+    fecha_fin: date = Query(...),
+    db: Session = Depends(get_db),
+    _admin: models.Usuario = Depends(require_admin),
+):
+    """
+    Retorna métricas de ventas del periodo sin llamar a la IA:
+    total, num_transacciones, productos_top, metodos_pago, baja_rotacion.
+    """
+    datos_ventas, datos_mermas = obtener_datos_periodo(db, fecha_inicio, fecha_fin)
+    return {**datos_ventas, **datos_mermas}
+
+
 @router.post("/insights", response_model=schemas.InsightsResponse)
 def generar_reporte_insights(
     datos: schemas.InsightsRequest,
