@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { authFetch } from '../lib/api';
+import RegistroMerma from './RegistroMerma';
 
 export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   const [pestaña, setPestaña] = useState('corte');
@@ -13,9 +14,22 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   const limit = 20;
 
   // Estado para exportación
-  const [fechaInicioExp, setFechaInicioExp] = useState(new Date().toISOString().split('T')[0]);
-  const [fechaFinExp, setFechaFinExp] = useState(new Date().toISOString().split('T')[0]);
+  const [fechaInicioExp, setFechaInicioExp] = useState(() => new Date().toISOString().split('T')[0]);
+  const [fechaFinExp, setFechaFinExp] = useState(() => new Date().toISOString().split('T')[0]);
   const [descargando, setDescargando] = useState(false);
+
+  // Estado para IA Insights (RF12 / Issue #10)
+  const [insightsFechaInicio, setInsightsFechaInicio] = useState(() => {
+    return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  });
+  const [insightsFechaFin, setInsightsFechaFin] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
+  const [reporteVentas, setReporteVentas]           = useState(null);
+  const [cargandoReporte, setCargandoReporte]       = useState(false);
+  const [insightsTexto, setInsightsTexto]           = useState('');
+  const [cargandoInsights, setCargandoInsights]     = useState(false);
+  const insightsRef = useRef(null);
 
   const [corteActivo, setCorteActivo] = useState(null);
   const [cargandoCorte, setCargandoCorte] = useState(false);
@@ -54,6 +68,72 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
       console.error(e);
     }
   }, [sesion]);
+
+  // Fetch métricas reales de ventas (Issue 8)
+  const fetchReporteVentas = useCallback(async () => {
+    if (!insightsFechaInicio || !insightsFechaFin) {
+      mostrarNotificacion('Selecciona un rango de fechas válido', 'warning');
+      return;
+    }
+    if (insightsFechaFin < insightsFechaInicio) {
+      mostrarNotificacion('La fecha final no puede ser anterior a la inicial', 'warning');
+      return;
+    }
+    setCargandoReporte(true);
+    setReporteVentas(null);
+    setInsightsTexto('');
+    try {
+      const res = await authFetch(
+        `/api/v1/reportes/ventas?fecha_inicio=${insightsFechaInicio}&fecha_fin=${insightsFechaFin}`,
+        sesion
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Error al obtener reporte');
+      }
+      const data = await res.json();
+      setReporteVentas(data);
+      mostrarNotificacion('Reporte generado exitosamente', 'success');
+    } catch (e) {
+      console.error(e);
+      mostrarNotificacion(e.message || 'Error de conexión al obtener el reporte', 'error');
+    } finally {
+      setCargandoReporte(false);
+    }
+  }, [insightsFechaInicio, insightsFechaFin, sesion, mostrarNotificacion]);
+
+  // Genera insights con Gemini IA (Issue 9) y registra auditoría (CP-11-02)
+  const generarInsights = useCallback(async () => {
+    if (!reporteVentas) {
+      mostrarNotificacion('Primero genera el reporte de ventas', 'warning');
+      return;
+    }
+    setCargandoInsights(true);
+    setInsightsTexto('');
+    try {
+      const res = await authFetch('/api/v1/reportes/insights', sesion, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fecha_inicio: insightsFechaInicio,
+          fecha_fin:    insightsFechaFin,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Error al generar insights');
+      }
+      const data = await res.json();
+      setInsightsTexto(data.insights);
+      mostrarNotificacion('Insights generados con IA', 'success');
+      setTimeout(() => insightsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch (e) {
+      console.error(e);
+      mostrarNotificacion(e.message || 'Error de conexión con el servicio de IA', 'error');
+    } finally {
+      setCargandoInsights(false);
+    }
+  }, [reporteVentas, insightsFechaInicio, insightsFechaFin, sesion, mostrarNotificacion]);
 
   const fetchAuditorias = useCallback(async () => {
     if (!esAdministrador) return;
@@ -178,21 +258,8 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
     }
   };
 
-  if (!esAdministrador) {
-    return (
-      <div className="p-8 w-full min-h-screen font-sans">
-        <div className="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 mb-2">
-            Acceso restringido
-          </p>
-          <h1 className="text-2xl font-black text-gray-900 mb-2">Reportes solo para administradores</h1>
-          <p className="text-sm text-amber-800">
-            Tu rol actual permite operar ventas y consultar catálogo, pero no acceder a reportes ni auditorías.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // El componente ahora permite el acceso a cajeros, pero filtra las pestañas disponibles
+  // en el bloque de renderizado más abajo.
 
   // Cálculos de ventas para el corte activo
   let totalEfectivo = 0;
@@ -227,11 +294,19 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
           >
             Cierre de Turno
           </button>
+          {esAdministrador && (
+            <button 
+              onClick={() => setPestaña('insights')}
+              className={`font-semibold pb-2 ${pestaña === 'insights' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+            >
+              IA Insights (Gemini)
+            </button>
+          )}
           <button 
-            onClick={() => setPestaña('insights')}
-            className={`font-semibold pb-2 ${pestaña === 'insights' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+            onClick={() => setPestaña('mermas')}
+            className={`font-semibold pb-2 ${pestaña === 'mermas' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
           >
-            IA Insights (Gemini)
+            Registro de Mermas
           </button>
           {esAdministrador && (
             <>
@@ -481,42 +556,221 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         </div>
       )}
 
-      {pestaña === 'insights' && (
+      {pestaña === 'insights' && esAdministrador && (
         <div className="space-y-6">
-          <div className="bg-[#1a237e] rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
-            <div className="relative z-10">
-              <p className="text-indigo-300 text-xs font-bold tracking-widest uppercase mb-2">✨ Sugerencia de Gemini API</p>
-              <h2 className="text-3xl font-bold mb-4">Incrementar stock de "Café Arabica" un 15% antes del próximo fin de semana.</h2>
-              <p className="text-indigo-100 max-w-2xl mb-6">
-                Nuestra IA detectó un patrón de consumo ascendente vinculado a eventos locales. Evita una pérdida estimada de $45,000 en ventas no realizadas.
-              </p>
-              <button onClick={() => mostrarNotificacion('Pedido generado y enviado a proveedor.')} className="bg-white text-[#1a237e] font-bold px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-                Aprobar Pedido
+
+          {/* ── 1. Selector de rango de fechas ── */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 text-[#4169E1]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Rango de Análisis</h3>
+                <p className="text-xs text-gray-500">Selecciona el periodo para generar el reporte y los insights</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Fecha inicio</label>
+                <input
+                  id="insights-fecha-inicio"
+                  type="date"
+                  value={insightsFechaInicio}
+                  max={insightsFechaFin}
+                  onChange={e => setInsightsFechaInicio(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#4169E1] outline-none text-sm"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Fecha fin</label>
+                <input
+                  id="insights-fecha-fin"
+                  type="date"
+                  value={insightsFechaFin}
+                  min={insightsFechaInicio}
+                  onChange={e => setInsightsFechaFin(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#4169E1] outline-none text-sm"
+                />
+              </div>
+              <button
+                id="btn-generar-reporte"
+                onClick={fetchReporteVentas}
+                disabled={cargandoReporte}
+                className="flex items-center gap-2 bg-[#4169E1] hover:bg-blue-800 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition-colors whitespace-nowrap"
+              >
+                {cargandoReporte ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                )}
+                {cargandoReporte ? 'Generando...' : 'Generar Reporte'}
               </button>
             </div>
           </div>
-          
-          <div className="grid grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm col-span-2">
-              <h3 className="font-bold text-gray-900 mb-4">Tendencias de Ventas</h3>
-              <div className="h-40 bg-gray-50 rounded flex items-end justify-between p-4">
-                {/* Barras simuladas de gráfica */}
-                <div className="w-8 bg-blue-200 rounded-t h-1/2"></div>
-                <div className="w-8 bg-[#4169E1] rounded-t h-full"></div>
-                <div className="w-8 bg-blue-200 rounded-t h-3/4"></div>
-                <div className="w-8 bg-blue-200 rounded-t h-1/3"></div>
-                <div className="w-8 bg-blue-200 rounded-t h-2/3"></div>
+
+          {/* ── 2. Métricas reales del periodo ── */}
+          {reporteVentas && (
+            <div className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
+              {/* KPIs */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">Total del Periodo</p>
+                  <p className="text-2xl font-black text-gray-900">${reporteVentas.resumen?.total_ventas?.toFixed(2) ?? '0.00'}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">Transacciones</p>
+                  <p className="text-2xl font-black text-gray-900">{reporteVentas.resumen?.num_ventas ?? 0}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">Subtotal</p>
+                  <p className="text-2xl font-black text-gray-900">${reporteVentas.resumen?.subtotal?.toFixed(2) ?? '0.00'}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <p className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">Impuestos</p>
+                  <p className="text-2xl font-black text-gray-900">${reporteVentas.resumen?.impuestos?.toFixed(2) ?? '0.00'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Top productos */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="text-lg">🏆</span> Productos más vendidos
+                  </h4>
+                  {reporteVentas.productos_vendidos?.length > 0 ? (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-gray-400 uppercase border-b border-gray-100">
+                          <th className="pb-2 text-left font-semibold">Producto</th>
+                          <th className="pb-2 text-right font-semibold">Unidades</th>
+                          <th className="pb-2 text-right font-semibold">Importe</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {reporteVentas.productos_vendidos.slice(0, 5).map((p, i) => (
+                          <tr key={p.id_producto} className="hover:bg-gray-50/50">
+                            <td className="py-2">
+                              <span className="mr-2 text-xs font-bold text-gray-400">#{i + 1}</span>
+                              {p.nombre}
+                            </td>
+                            <td className="py-2 text-right font-semibold">{p.unidades}</td>
+                            <td className="py-2 text-right text-[#4169E1] font-bold">${p.importe.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-6">Sin ventas en este periodo.</p>
+                  )}
+                </div>
+
+                {/* Métodos de pago */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="text-lg">💳</span> Métodos de pago
+                  </h4>
+                  {reporteVentas.metodos_pago?.length > 0 ? (
+                    <div className="space-y-3">
+                      {reporteVentas.metodos_pago.map(m => {
+                        const total = reporteVentas.resumen?.total_ventas || 1;
+                        const pct = ((m.total / total) * 100).toFixed(1);
+                        return (
+                          <div key={m.metodo_pago}>
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="capitalize font-medium text-gray-700">{m.metodo_pago}</span>
+                              <span className="font-bold text-gray-900">${m.total.toFixed(2)} <span className="text-gray-400 font-normal">({pct}%)</span></span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-2">
+                              <div className="bg-[#4169E1] h-2 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-6">Sin datos de métodos de pago.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Baja rotación / riesgo de stock */}
+              {reporteVentas.productos_en_riesgo_stock?.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                  <h4 className="font-bold text-amber-800 mb-3 flex items-center gap-2">
+                    <span>⚠️</span> Productos en riesgo de desabasto ({reporteVentas.productos_en_riesgo_stock.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {reporteVentas.productos_en_riesgo_stock.map(p => (
+                      <span key={p.id_producto} className="text-xs bg-amber-100 text-amber-800 border border-amber-300 rounded-lg px-3 py-1 font-semibold">
+                        {p.nombre} — stock: {p.stock_actual} / mín: {p.stock_minimo}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Botón Generar Insights IA */}
+              <div className="flex justify-center pt-2">
+                <button
+                  id="btn-generar-insights"
+                  onClick={generarInsights}
+                  disabled={cargandoInsights}
+                  className="flex items-center gap-3 bg-gradient-to-r from-[#1a237e] to-[#4169E1] hover:from-[#151c6a] hover:to-[#3558c8] disabled:opacity-60 text-white font-bold px-8 py-4 rounded-2xl shadow-lg transition-all"
+                >
+                  {cargandoInsights ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                      Consultando a Gemini IA...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                      ✨ Generar Insights con IA
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-center flex-col">
-              <h3 className="font-bold text-gray-900 mb-4 text-center">Salud del Inventario</h3>
-              <div className="w-32 h-32 rounded-full border-8 border-[#4169E1] flex items-center justify-center">
-                <span className="text-3xl font-bold text-gray-900">85%</span>
+          )}
+
+          {/* ── 3. Resultados de la IA ── */}
+          {insightsTexto && (
+            <div ref={insightsRef} className="bg-gradient-to-br from-[#1a237e] to-[#283593] rounded-2xl p-8 text-white shadow-xl animate-[fadeIn_0.4s_ease-out]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-indigo-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                </div>
+                <div>
+                  <p className="text-indigo-300 text-xs font-bold tracking-widest uppercase">✨ Gemini IA — Análisis Estratégico</p>
+                  <p className="text-white/60 text-xs mt-0.5">{insightsFechaInicio} → {insightsFechaFin}</p>
+                </div>
               </div>
-              <p className="text-sm text-gray-500 mt-4 text-center">Excelente</p>
+              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                <pre className="whitespace-pre-wrap font-sans text-sm text-indigo-100 leading-relaxed">{insightsTexto}</pre>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Estado vacío inicial */}
+          {!reporteVentas && !cargandoReporte && (
+            <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
+              <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-[#4169E1]" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+              </div>
+              <h3 className="font-bold text-gray-800 text-lg mb-2">Análisis con Inteligencia Artificial</h3>
+              <p className="text-sm text-gray-500 max-w-sm mx-auto">Selecciona un rango de fechas y presiona <strong>Generar Reporte</strong> para visualizar las métricas del periodo y luego obtener recomendaciones estratégicas de Gemini IA.</p>
+            </div>
+          )}
         </div>
+      )}
+
+      {pestaña === 'mermas' && (
+        <RegistroMerma 
+          mostrarNotificacion={mostrarNotificacion} 
+          sesion={sesion}
+          idCorteActivo={corteActivo?.id_corte}
+        />
       )}
 
       {pestaña === 'auditoria' && esAdministrador && (
