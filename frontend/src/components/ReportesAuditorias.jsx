@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { authFetch } from '../lib/api';
+import RegistroMerma from './RegistroMerma';
 
 export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   const [pestaña, setPestaña] = useState('corte');
@@ -13,15 +14,17 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   const limit = 20;
 
   // Estado para exportación
-  const [fechaInicioExp, setFechaInicioExp] = useState(new Date().toISOString().split('T')[0]);
-  const [fechaFinExp, setFechaFinExp] = useState(new Date().toISOString().split('T')[0]);
+  const [fechaInicioExp, setFechaInicioExp] = useState(() => new Date().toISOString().split('T')[0]);
+  const [fechaFinExp, setFechaFinExp] = useState(() => new Date().toISOString().split('T')[0]);
   const [descargando, setDescargando] = useState(false);
 
   // Estado para IA Insights (RF12 / Issue #10)
-  const hoy = new Date().toISOString().split('T')[0];
-  const hace7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const [insightsFechaInicio, setInsightsFechaInicio] = useState(hace7);
-  const [insightsFechaFin, setInsightsFechaFin]     = useState(hoy);
+  const [insightsFechaInicio, setInsightsFechaInicio] = useState(() => {
+    return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  });
+  const [insightsFechaFin, setInsightsFechaFin] = useState(() => {
+    return new Date().toISOString().split('T')[0];
+  });
   const [reporteVentas, setReporteVentas]           = useState(null);
   const [cargandoReporte, setCargandoReporte]       = useState(false);
   const [insightsTexto, setInsightsTexto]           = useState('');
@@ -255,21 +258,8 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
     }
   };
 
-  if (!esAdministrador) {
-    return (
-      <div className="p-8 w-full min-h-screen font-sans">
-        <div className="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 p-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-600 mb-2">
-            Acceso restringido
-          </p>
-          <h1 className="text-2xl font-black text-gray-900 mb-2">Reportes solo para administradores</h1>
-          <p className="text-sm text-amber-800">
-            Tu rol actual permite operar ventas y consultar catálogo, pero no acceder a reportes ni auditorías.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // El componente ahora permite el acceso a cajeros, pero filtra las pestañas disponibles
+  // en el bloque de renderizado más abajo.
 
   // Cálculos de ventas para el corte activo
   let totalEfectivo = 0;
@@ -304,11 +294,19 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
           >
             Cierre de Turno
           </button>
+          {esAdministrador && (
+            <button 
+              onClick={() => setPestaña('insights')}
+              className={`font-semibold pb-2 ${pestaña === 'insights' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+            >
+              IA Insights (Gemini)
+            </button>
+          )}
           <button 
-            onClick={() => setPestaña('insights')}
-            className={`font-semibold pb-2 ${pestaña === 'insights' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+            onClick={() => setPestaña('mermas')}
+            className={`font-semibold pb-2 ${pestaña === 'mermas' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
           >
-            IA Insights (Gemini)
+            Registro de Mermas
           </button>
           {esAdministrador && (
             <>
@@ -558,7 +556,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         </div>
       )}
 
-      {pestaña === 'insights' && (
+      {pestaña === 'insights' && esAdministrador && (
         <div className="space-y-6">
 
           {/* ── 1. Selector de rango de fechas ── */}
@@ -765,6 +763,14 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
             </div>
           )}
         </div>
+      )}
+
+      {pestaña === 'mermas' && (
+        <RegistroMerma 
+          mostrarNotificacion={mostrarNotificacion} 
+          sesion={sesion}
+          idCorteActivo={corteActivo?.id_corte}
+        />
       )}
 
       {pestaña === 'auditoria' && esAdministrador && (
