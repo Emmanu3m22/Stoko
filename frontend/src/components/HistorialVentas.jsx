@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { authFetch } from '../lib/api';
+import { authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 
 const LIMITE = 20;
 
@@ -19,14 +19,6 @@ const fmtFecha = (fecha) =>
     minute: '2-digit',
   });
 
-async function leerRespuesta(res) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.detail || 'No se pudo completar la operación.');
-  }
-  return data;
-}
-
 export default function HistorialVentas({ sesion, mostrarNotificacion }) {
   const [ventas, setVentas] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -45,9 +37,9 @@ export default function HistorialVentas({ sesion, mostrarNotificacion }) {
         anuladas: 'true',
       });
       const res = await authFetch(`/api/v1/ventas/?${params.toString()}`, sesion);
-      setVentas(await leerRespuesta(res));
+      setVentas(await leerRespuestaApi(res, 'No se pudo cargar el historial de ventas.'));
     } catch (err) {
-      setError(err.message || 'No se pudo cargar el historial de ventas.');
+      setError(mensajeErrorApi(err, 'No se pudo cargar el historial de ventas.'));
     } finally {
       setCargando(false);
     }
@@ -66,11 +58,11 @@ export default function HistorialVentas({ sesion, mostrarNotificacion }) {
       const res = await authFetch(`/api/v1/ventas/${venta.id_venta}/anular`, sesion, {
         method: 'POST',
       });
-      await leerRespuesta(res);
+      await leerRespuestaApi(res, 'No se pudo anular la venta.');
       mostrarNotificacion(`Venta #${venta.id_venta} anulada correctamente.`);
       await cargarVentas();
     } catch (err) {
-      mostrarNotificacion(err.message || 'No se pudo anular la venta.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo anular la venta.'), 'error');
     } finally {
       setAnulando(null);
     }

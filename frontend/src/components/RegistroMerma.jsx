@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { authFetch } from '../lib/api';
+import { authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 
 export default function RegistroMerma({ mostrarNotificacion, sesion, idCorteActivo }) {
   const [productos, setProductos] = useState([]);
@@ -14,29 +14,25 @@ export default function RegistroMerma({ mostrarNotificacion, sesion, idCorteActi
   const fetchProductos = useCallback(async () => {
     try {
       const res = await authFetch('/api/v1/productos/', sesion);
-      if (res.ok) {
-        const data = await res.json();
-        setProductos(data);
-      }
+      setProductos(await leerRespuestaApi(res, 'No se pudieron cargar los productos.'));
     } catch (e) {
       console.error(e);
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudieron cargar los productos.'), 'error');
     }
-  }, [sesion]);
+  }, [sesion, mostrarNotificacion]);
 
   const fetchIncidencias = useCallback(async () => {
     setCargandoHistorial(true);
     try {
       const res = await authFetch('/api/v1/incidencias/', sesion);
-      if (res.ok) {
-        const data = await res.json();
-        setIncidencias(data);
-      }
+      setIncidencias(await leerRespuestaApi(res, 'No se pudo cargar el historial de mermas.'));
     } catch (e) {
       console.error(e);
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudo cargar el historial de mermas.'), 'error');
     } finally {
       setCargandoHistorial(false);
     }
-  }, [sesion]);
+  }, [sesion, mostrarNotificacion]);
 
   useEffect(() => {
     fetchProductos();
@@ -89,21 +85,17 @@ export default function RegistroMerma({ mostrarNotificacion, sesion, idCorteActi
         })
       });
 
-      if (res.ok) {
-        mostrarNotificacion('Merma registrada exitosamente', 'success');
-        setProductoSeleccionado(null);
-        setBusqueda('');
-        setCantidad('');
-        setCausa('');
-        fetchProductos(); // Refrescar stock
-        fetchIncidencias(); // Refrescar historial
-      } else {
-        const err = await res.json();
-        mostrarNotificacion(err.detail || 'Error al registrar merma', 'error');
-      }
+      await leerRespuestaApi(res, 'No se pudo registrar la merma.');
+      mostrarNotificacion('Merma registrada exitosamente', 'success');
+      setProductoSeleccionado(null);
+      setBusqueda('');
+      setCantidad('');
+      setCausa('');
+      fetchProductos(); // Refrescar stock
+      fetchIncidencias(); // Refrescar historial
     } catch (e) {
       console.error(e);
-      mostrarNotificacion('Error de conexión', 'error');
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudo registrar la merma.'), 'error');
     } finally {
       setCargando(false);
     }

@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { authFetch } from '../lib/api';
-
-async function leerRespuesta(res) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.detail || 'No se pudo completar la operación.');
-  }
-  return data;
-}
+import { authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 
 export default function Configuracion({ sesion, mostrarNotificacion }) {
   const [pestaña, setPestaña] = useState('perfil');
@@ -32,10 +24,10 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
     setCargandoUsuarios(true);
     try {
       const res = await authFetch('/api/v1/usuarios/', sesion);
-      const data = await leerRespuesta(res);
+      const data = await leerRespuestaApi(res, 'No se pudieron cargar los usuarios.');
       setUsuarios(data);
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al cargar usuarios', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudieron cargar los usuarios.'), 'error');
     } finally {
       setCargandoUsuarios(false);
     }
@@ -66,7 +58,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
           id_rol: parseInt(nuevoRol)
         })
       });
-      await leerRespuesta(res);
+      await leerRespuestaApi(res, 'No se pudo crear el usuario.');
       setNuevoNombre(''); 
       setNuevoEmail('');
       setNuevoPassword('');
@@ -74,10 +66,11 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       mostrarNotificacion(`Usuario ${nuevoNombre} agregado correctamente.`);
       cargarUsuarios();
     } catch (err) {
-      if (err.message.toLowerCase().includes("registrado") || err.message.includes("400")) {
+      const mensaje = mensajeErrorApi(err, 'No se pudo crear el usuario.');
+      if (mensaje.toLowerCase().includes("registrado")) {
         mostrarNotificacion("El email ya está registrado.", "error");
       } else {
-        mostrarNotificacion(err.message || "Error al crear usuario", "error");
+        mostrarNotificacion(mensaje, "error");
       }
     }
   };
@@ -115,13 +108,13 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
         method: 'PATCH',
         body: JSON.stringify(payload)
       });
-      await leerRespuesta(res);
+      await leerRespuestaApi(res, 'No se pudo actualizar el usuario.');
       mostrarNotificacion('Usuario actualizado correctamente.');
       setModalEdicion(false);
       setUsuarioEditando(null);
       cargarUsuarios();
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al actualizar usuario', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo actualizar el usuario.'), 'error');
     }
   };
 
@@ -131,11 +124,11 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       const res = await authFetch(`/api/v1/usuarios/${u.id_usuario}`, sesion, {
         method: 'DELETE'
       });
-      await leerRespuesta(res);
+      await leerRespuestaApi(res, 'No se pudo desactivar el usuario.');
       mostrarNotificacion('Usuario desactivado correctamente.');
       cargarUsuarios();
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al desactivar usuario', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo desactivar el usuario.'), 'error');
     }
   };
 

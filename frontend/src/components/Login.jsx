@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { iniciarSesion } from '../lib/api';
+import { iniciarSesion, mensajeErrorApi } from '../lib/api';
 
 // Credenciales reales (sembradas en el primer arranque)
 const DEMO_EMAIL    = 'admin@stoko.com';
@@ -21,7 +21,7 @@ export default function Login({ onLoginExitoso }) {
       const sesion = await iniciarSesion(email.trim(), password);
       onLoginExitoso?.(sesion);
     } catch (err) {
-      setError(err.message || 'No se pudo iniciar sesión.');
+      setError(mensajeErrorApi(err, 'No se pudo iniciar sesión.'));
     } finally {
       setCargando(false);
     }

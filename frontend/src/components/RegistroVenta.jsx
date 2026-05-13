@@ -1,20 +1,12 @@
 import { useState, useRef } from 'react';
 import HistorialVentas from './HistorialVentas';
-import { authFetch } from '../lib/api';
+import { authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 import { guardarVentaPendiente } from '../lib/ventasOffline';
 // Productos vienen como prop desde HubPrincipal (fuente única de datos).
 
 const IVA = 0.16;
 const fmt = (n) =>
   n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
-
-async function leerRespuesta(res) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.detail || 'No se pudo completar la operación.');
-  }
-  return data;
-}
 
 export default function RegistroVenta({
   productos = [],
@@ -138,7 +130,7 @@ export default function RegistroVenta({
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      const venta = await leerRespuesta(res);
+      const venta = await leerRespuestaApi(res, 'No se pudo registrar la venta.');
       setVentaRegistrada(venta);
       setCarrito([]);
       setBusqueda('');
@@ -146,10 +138,10 @@ export default function RegistroVenta({
       mostrarNotificacion(`Venta #${venta.id_venta} registrada por ${fmt(venta.total)}.`);
       await onVentaRegistrada?.();
     } catch (err) {
-      if (!navigator.onLine || err instanceof TypeError) {
+      if (!navigator.onLine || err.code === 'NETWORK_ERROR' || err instanceof TypeError) {
         await guardarVentaOffline(payload);
       } else {
-        mostrarNotificacion(err.message || 'No se pudo registrar la venta.', 'error');
+        mostrarNotificacion(mensajeErrorApi(err, 'No se pudo registrar la venta.'), 'error');
       }
     } finally {
       setProcesando(false);
