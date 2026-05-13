@@ -18,6 +18,30 @@ class IAServiceError(RuntimeError):
     """Error controlado al comunicarse con el proveedor de IA."""
 
 
+def _mensaje_error_proveedor(exc: Exception, model: str) -> str:
+    """Convierte errores del SDK de Gemini en mensajes útiles para soporte."""
+    status_code = getattr(exc, "status_code", None)
+    texto = str(exc)
+    texto_lower = texto.lower()
+
+    if status_code == 429 or "resource_exhausted" in texto_lower or "quota" in texto_lower:
+        return (
+            f"Gemini no tiene cuota disponible para el modelo {model}. "
+            "Revisa la cuota, facturación o espera a que se restablezca el límite."
+        )
+
+    if status_code == 404 or "not_found" in texto_lower or "is not found" in texto_lower:
+        return (
+            f"El modelo de Gemini {model} no está disponible para esta API key. "
+            "Configura GEMINI_MODEL con un modelo disponible."
+        )
+
+    if status_code in {400, 401, 403} or "api key" in texto_lower or "permission" in texto_lower:
+        return "Gemini rechazó la solicitud. Verifica que GEMINI_API_KEY sea válida y tenga permisos."
+
+    return "El servicio de IA no respondió correctamente"
+
+
 def _construir_prompt(datos_ventas: dict[str, Any], datos_mermas: dict[str, Any]) -> str:
     return f"""
 Eres un analista de operaciones para un sistema POS e inventario llamado STOKO.
@@ -61,7 +85,7 @@ def generar_insights(datos_ventas: dict[str, Any], datos_mermas: dict[str, Any])
         response = client.models.generate_content(model=model, contents=prompt)
         texto = getattr(response, "text", None)
     except Exception as exc:
-        raise IAServiceError("El servicio de IA no respondió correctamente") from exc
+        raise IAServiceError(_mensaje_error_proveedor(exc, model)) from exc
 
     if not texto:
         raise IAServiceError("El servicio de IA no devolvió contenido")
