@@ -6,7 +6,12 @@ GEMINI_API_KEY y el modelo puede configurarse con GEMINI_MODEL.
 """
 
 import os
+from pathlib import Path
 from typing import Any
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 class IAServiceError(RuntimeError):
@@ -46,7 +51,7 @@ def generar_insights(datos_ventas: dict[str, Any], datos_mermas: dict[str, Any])
     if not api_key:
         raise IAServiceError("GEMINI_API_KEY no está configurada")
 
-    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
     prompt = _construir_prompt(datos_ventas, datos_mermas)
 
     try:
