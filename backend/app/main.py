@@ -70,51 +70,6 @@ def root():
     }
 
 
-# ### Endpoint de compatibilidad con el frontend  
-# El frontend actualmente llama a GET /productos/ sin prefijo /api/v1.
-# Este alias redirige para no romper el frontend mientras se migra.
-from fastapi import Depends
-from sqlalchemy.orm import Session
-from app.database import get_db
-from app import schemas
-
-@app.get("/productos/", response_model=list[schemas.ProductoResponse], tags=["Compatibilidad"])
-def productos_compat(db: Session = Depends(get_db)):
-    """
-    Alias de compatibilidad para el frontend React que consume /productos/ sin prefijo.
-    Devuelve todos los productos sin autenticación (modo público de solo lectura).
-    """
-    return db.query(models.Producto).order_by(models.Producto.nombre).all()
-
-@app.delete("/productos/{producto_id}", response_model=schemas.MensajeResponse, tags=["Compatibilidad"])
-def eliminar_producto_compat(producto_id: int, db: Session = Depends(get_db)):
-    """Alias de compatibilidad — eliminar producto sin prefijo."""
-    producto = db.query(models.Producto).filter(
-        models.Producto.id_producto == producto_id
-    ).first()
-    if not producto:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Producto no encontrado")
-    nombre = producto.nombre
-    db.delete(producto)
-    db.commit()
-    return {"mensaje": f"Producto '{nombre}' eliminado"}
-
-@app.post("/productos/", response_model=schemas.ProductoResponse, status_code=201, tags=["Compatibilidad"])
-def crear_producto_compat(datos: schemas.ProductoCreate, db: Session = Depends(get_db)):
-    """Alias de compatibilidad — crear producto sin prefijo."""
-    from fastapi import HTTPException
-    if db.query(models.Producto).filter(
-        models.Producto.codigo_barras == datos.codigo_barras
-    ).first():
-        raise HTTPException(status_code=400, detail="Código de barras duplicado")
-    producto = models.Producto(**datos.model_dump())
-    db.add(producto)
-    db.commit()
-    db.refresh(producto)
-    return producto
-
-
 # Seed inicial (se ejecuta una vez al arrancar) 
 
 def _seed_database():
