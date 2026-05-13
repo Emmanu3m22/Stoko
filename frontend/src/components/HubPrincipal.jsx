@@ -1,9 +1,14 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
 import { authFetch } from '../lib/api';
+import {
+  VENTAS_OFFLINE_EVENT,
+  contarVentasPendientes,
+  sincronizarVentasPendientes,
+} from '../lib/ventasOffline';
 import { ROLES, esAdministrador as usuarioEsAdministrador, normalizarRol } from '../auth';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
@@ -194,16 +199,19 @@ export default function HubPrincipal({ sesion, onLogout }) {
 
   // ── Sistema de notificaciones Toast ────────────────────────────────────────
   const [toast, setToast] = useState({ visible: false, mensaje: '', tipo: '' });
+  const sincronizandoVentasRef = useRef(false);
 
-  const mostrarNotificacion = (mensaje, tipo = 'success') => {
+  const mostrarNotificacion = useCallback((mensaje, tipo = 'success') => {
     setToast({ visible: true, mensaje, tipo });
     setTimeout(() => setToast({ visible: false, mensaje: '', tipo: '' }), 3500);
-  };
+  }, []);
 
   // ── ÚNICA fuente de verdad para productos y categorías ─────────────────────
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargando,  setCargando]  = useState(true);
+  const [ventasPendientes, setVentasPendientes] = useState(0);
+  const [sincronizandoVentas, setSincronizandoVentas] = useState(false);
 
   const fetchProductos = useCallback(async () => {
     setCargando(true);
@@ -229,10 +237,58 @@ export default function HubPrincipal({ sesion, onLogout }) {
     }
   }, [sesion]);
 
+  const actualizarVentasPendientes = useCallback(async () => {
+    setVentasPendientes(await contarVentasPendientes({ usuarioId: sesion?.usuario?.id }));
+  }, [sesion]);
+
+  const sincronizarVentasOffline = useCallback(async ({ notificar = false } = {}) => {
+    if (!sesion?.token || sincronizandoVentasRef.current) return;
+
+    sincronizandoVentasRef.current = true;
+    setSincronizandoVentas(true);
+    try {
+      const resumen = await sincronizarVentasPendientes(sesion, {
+        onVentaSincronizada: fetchProductos,
+      });
+      await actualizarVentasPendientes();
+
+      if (resumen.sincronizadas > 0) {
+        mostrarNotificacion(
+          `${resumen.sincronizadas} venta${resumen.sincronizadas !== 1 ? 's' : ''} pendiente${resumen.sincronizadas !== 1 ? 's' : ''} sincronizada${resumen.sincronizadas !== 1 ? 's' : ''}.`,
+        );
+      } else if (notificar && resumen.pendientes > 0) {
+        mostrarNotificacion('Aún hay ventas pendientes por sincronizar.', 'error');
+      }
+
+      if (resumen.errores > 0 && resumen.sincronizadas === 0) {
+        mostrarNotificacion('No se pudieron sincronizar las ventas pendientes.', 'error');
+      }
+    } finally {
+      sincronizandoVentasRef.current = false;
+      setSincronizandoVentas(false);
+    }
+  }, [actualizarVentasPendientes, fetchProductos, mostrarNotificacion, sesion]);
+
   useEffect(() => {
     fetchProductos();
     fetchCategorias();
   }, [fetchProductos, fetchCategorias]);
+
+  useEffect(() => {
+    actualizarVentasPendientes();
+    sincronizarVentasOffline();
+
+    const manejarCambio = () => actualizarVentasPendientes();
+    const manejarOnline = () => sincronizarVentasOffline({ notificar: true });
+
+    window.addEventListener(VENTAS_OFFLINE_EVENT, manejarCambio);
+    window.addEventListener('online', manejarOnline);
+
+    return () => {
+      window.removeEventListener(VENTAS_OFFLINE_EVENT, manejarCambio);
+      window.removeEventListener('online', manejarOnline);
+    };
+  }, [actualizarVentasPendientes, sincronizarVentasOffline]);
 
   useEffect(() => {
     if (!menuVisible.some((item) => item.id === menuActivo)) {
@@ -397,7 +453,15 @@ export default function HubPrincipal({ sesion, onLogout }) {
           sesion={sesion}
         />
       );
-      case 'ventas':    return <RegistroVenta productos={productos} sesion={sesion} onVentaRegistrada={fetchProductos} mostrarNotificacion={mostrarNotificacion} />;
+      case 'ventas':    return (
+        <RegistroVenta
+          productos={productos}
+          sesion={sesion}
+          onVentaRegistrada={fetchProductos}
+          onVentaPendienteGuardada={() => sincronizarVentasOffline()}
+          mostrarNotificacion={mostrarNotificacion}
+        />
+      );
       case 'reportes':  return esAdministrador
         ? <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} sesion={sesion} />
         : <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
@@ -473,9 +537,21 @@ export default function HubPrincipal({ sesion, onLogout }) {
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
             {menuVisible.find((m) => m.id === menuActivo)?.label || 'Dashboard'}
           </p>
-          <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            API conectada · localhost:8000
+          <div className="flex items-center gap-2">
+            {ventasPendientes > 0 && (
+              <button
+                type="button"
+                onClick={() => sincronizarVentasOffline({ notificar: true })}
+                disabled={sincronizandoVentas}
+                className="text-xs font-semibold text-amber-700 bg-amber-100 hover:bg-amber-200 disabled:opacity-60 px-3 py-1.5 rounded-full transition-colors"
+              >
+                {sincronizandoVentas ? 'Sincronizando ventas...' : `${ventasPendientes} venta${ventasPendientes !== 1 ? 's' : ''} pendiente${ventasPendientes !== 1 ? 's' : ''}`}
+              </button>
+            )}
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              API conectada · localhost:8000
+            </div>
           </div>
         </header>
         <div className="p-8">{renderContenido()}</div>

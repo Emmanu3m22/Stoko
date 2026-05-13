@@ -60,21 +60,6 @@ export default defineConfig({
               },
             },
           },
-          {
-            urlPattern: ({ url }) =>
-              ['http://localhost:8000', 'http://127.0.0.1:8000'].includes(url.origin) &&
-              url.pathname === '/api/v1/ventas/',
-            handler: 'NetworkOnly',
-            method: 'POST',
-            options: {
-              backgroundSync: {
-                name: 'stoko-ventas-pendientes',
-                options: {
-                  maxRetentionTime: 24 * 60,
-                },
-              },
-            },
-          },
         ],
       },
     }),

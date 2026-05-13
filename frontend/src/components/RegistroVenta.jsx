@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import HistorialVentas from './HistorialVentas';
 import { authFetch } from '../lib/api';
+import { guardarVentaPendiente } from '../lib/ventasOffline';
 // Productos vienen como prop desde HubPrincipal (fuente única de datos).
 
 const IVA = 0.16;
@@ -15,7 +16,13 @@ async function leerRespuesta(res) {
   return data;
 }
 
-export default function RegistroVenta({ productos = [], sesion, onVentaRegistrada, mostrarNotificacion }) {
+export default function RegistroVenta({
+  productos = [],
+  sesion,
+  onVentaRegistrada,
+  onVentaPendienteGuardada,
+  mostrarNotificacion,
+}) {
   const [carrito, setCarrito]     = useState([]);
   const [busqueda, setBusqueda]   = useState('');
   const [sugerencias, setSugerencias] = useState([]);
@@ -93,20 +100,43 @@ export default function RegistroVenta({ productos = [], sesion, onVentaRegistrad
   const total    = subtotal + impuesto;
   const numItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
 
+  const construirPayloadVenta = () => ({
+    metodo_pago: 'efectivo',
+    items: carrito.map((item) => ({
+      id_producto: item.id_producto || item.id,
+      cantidad: item.cantidad,
+    })),
+  });
+
+  const guardarVentaOffline = async (payload) => {
+    const venta = await guardarVentaPendiente({
+      payload,
+      total,
+      items: numItems,
+      usuarioId: sesion?.usuario?.id,
+    });
+    setVentaPendiente({ id: venta.id, total, items: numItems });
+    setCarrito([]);
+    setBusqueda('');
+    setSugerencias([]);
+    await onVentaPendienteGuardada?.();
+    mostrarNotificacion('Venta guardada sin conexión. Se sincronizará automáticamente.', 'success');
+  };
+
   const finalizarVenta = async () => {
     if (carrito.length === 0 || procesando) return;
 
     setProcesando(true);
+    const payload = construirPayloadVenta();
     try {
+      if (!navigator.onLine) {
+        await guardarVentaOffline(payload);
+        return;
+      }
+
       const res = await authFetch('/api/v1/ventas/', sesion, {
         method: 'POST',
-        body: JSON.stringify({
-          metodo_pago: 'efectivo',
-          items: carrito.map((item) => ({
-            id_producto: item.id,
-            cantidad: item.cantidad,
-          })),
-        }),
+        body: JSON.stringify(payload),
       });
       const venta = await leerRespuesta(res);
       setVentaRegistrada(venta);
@@ -117,11 +147,7 @@ export default function RegistroVenta({ productos = [], sesion, onVentaRegistrad
       await onVentaRegistrada?.();
     } catch (err) {
       if (!navigator.onLine || err instanceof TypeError) {
-        setVentaPendiente({ total, items: numItems });
-        setCarrito([]);
-        setBusqueda('');
-        setSugerencias([]);
-        mostrarNotificacion('Venta guardada sin conexión. Se sincronizará automáticamente.', 'success');
+        await guardarVentaOffline(payload);
       } else {
         mostrarNotificacion(err.message || 'No se pudo registrar la venta.', 'error');
       }
@@ -165,7 +191,7 @@ export default function RegistroVenta({ productos = [], sesion, onVentaRegistrad
           Total pendiente: <span className="font-bold text-gray-900">{fmt(ventaPendiente.total)}</span>
         </p>
         <p className="text-gray-400 text-xs mb-8">
-          {ventaPendiente.items} ítem{ventaPendiente.items !== 1 ? 's' : ''} se sincronizarán cuando vuelva la conexión.
+          Folio local {ventaPendiente.id.slice(0, 8)} · {ventaPendiente.items} ítem{ventaPendiente.items !== 1 ? 's' : ''} se sincronizarán cuando vuelva la conexión.
         </p>
         <button
           onClick={() => { setVentaPendiente(null); setVista('venta'); }}

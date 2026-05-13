@@ -4,7 +4,7 @@ import {
   crearSesion,
   guardarSesion,
   obtenerSesion,
-} from '../auth';
+} from '../auth.js';
 
 export const API_URL = 'http://localhost:8000';
 
