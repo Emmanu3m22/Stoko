@@ -75,7 +75,7 @@ def generar_insights(datos_ventas: dict[str, Any], datos_mermas: dict[str, Any])
     if not api_key:
         raise IAServiceError("GEMINI_API_KEY no está configurada")
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
+    model = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
     prompt = _construir_prompt(datos_ventas, datos_mermas)
 
     try:
