@@ -2,6 +2,21 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { authFetch } from '../lib/api';
 import RegistroMerma from './RegistroMerma';
 
+const fmtMoneda = (valor) =>
+  Number(valor || 0).toLocaleString('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2,
+  });
+
+const fmtFechaHora = (fecha) => fecha ? new Date(fecha).toLocaleString('es-MX') : '-';
+
+async function leerMensajeError(res, fallback) {
+  const data = await res.json().catch(() => ({}));
+  if (typeof data.detail === 'string') return data.detail;
+  return fallback;
+}
+
 export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   const [pestaña, setPestaña] = useState('corte');
 
@@ -33,12 +48,14 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
 
   const [corteActivo, setCorteActivo] = useState(null);
   const [cargandoCorte, setCargandoCorte] = useState(false);
+  const [errorCorte, setErrorCorte] = useState('');
   const [efectivoReal, setEfectivoReal] = useState('');
   const [historialCortes, setHistorialCortes] = useState([]);
   const [corteSeleccionado, setCorteSeleccionado] = useState(null);
 
   const fetchCorteActivo = useCallback(async () => {
     setCargandoCorte(true);
+    setErrorCorte('');
     try {
       const res = await authFetch('/api/v1/cortes/activo', sesion);
       if (res.ok) {
@@ -47,36 +64,46 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
       } else if (res.status === 404) {
         setCorteActivo(null);
       } else {
-        throw new Error('Error al obtener turno activo');
+        throw new Error(await leerMensajeError(res, 'No se pudo obtener el turno activo.'));
       }
     } catch (e) {
       console.error(e);
-      mostrarNotificacion('Error al cargar turno activo', 'error');
+      const mensaje = e.message || 'Error de red al cargar el turno activo.';
+      setErrorCorte(mensaje);
+      mostrarNotificacion(mensaje, 'error');
     } finally {
       setCargandoCorte(false);
     }
   }, [sesion, mostrarNotificacion]);
 
   const fetchHistorialCortes = useCallback(async () => {
+    if (!esAdministrador) {
+      setHistorialCortes([]);
+      return;
+    }
+
     try {
       const res = await authFetch('/api/v1/cortes/', sesion);
       if (res.ok) {
         const data = await res.json();
         setHistorialCortes(data);
+      } else {
+        throw new Error(await leerMensajeError(res, 'No se pudo cargar el historial de cortes.'));
       }
     } catch (e) {
       console.error(e);
+      mostrarNotificacion(e.message || 'Error de red al cargar el historial de cortes.', 'error');
     }
-  }, [sesion]);
+  }, [esAdministrador, sesion, mostrarNotificacion]);
 
   // Fetch métricas reales de ventas (Issue 8)
   const fetchReporteVentas = useCallback(async () => {
     if (!insightsFechaInicio || !insightsFechaFin) {
-      mostrarNotificacion('Selecciona un rango de fechas válido', 'warning');
+      mostrarNotificacion('Selecciona un rango de fechas válido', 'error');
       return;
     }
     if (insightsFechaFin < insightsFechaInicio) {
-      mostrarNotificacion('La fecha final no puede ser anterior a la inicial', 'warning');
+      mostrarNotificacion('La fecha final no puede ser anterior a la inicial', 'error');
       return;
     }
     setCargandoReporte(true);
@@ -88,15 +115,14 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         sesion
       );
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Error al obtener reporte');
+        throw new Error(await leerMensajeError(res, 'No se pudo obtener el reporte del periodo.'));
       }
       const data = await res.json();
       setReporteVentas(data);
       mostrarNotificacion('Reporte generado exitosamente', 'success');
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de conexión al obtener el reporte', 'error');
+      mostrarNotificacion(e.message || 'Error de red al obtener el reporte.', 'error');
     } finally {
       setCargandoReporte(false);
     }
@@ -105,7 +131,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   // Genera insights con Gemini IA (Issue 9) y registra auditoría (CP-11-02)
   const generarInsights = useCallback(async () => {
     if (!reporteVentas) {
-      mostrarNotificacion('Primero genera el reporte de ventas', 'warning');
+      mostrarNotificacion('Primero genera el reporte de ventas.', 'error');
       return;
     }
     setCargandoInsights(true);
@@ -113,15 +139,13 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
     try {
       const res = await authFetch('/api/v1/reportes/insights', sesion, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fecha_inicio: insightsFechaInicio,
           fecha_fin:    insightsFechaFin,
         }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || 'Error al generar insights');
+        throw new Error(await leerMensajeError(res, 'No se pudieron generar insights con IA.'));
       }
       const data = await res.json();
       setInsightsTexto(data.insights);
@@ -129,7 +153,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
       setTimeout(() => insightsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de conexión con el servicio de IA', 'error');
+      mostrarNotificacion(e.message || 'Error de red con el servicio de IA.', 'error');
     } finally {
       setCargandoInsights(false);
     }
@@ -148,7 +172,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         const data = await res.json();
         setAuditorias(data);
       } else {
-        throw new Error('Error en respuesta');
+        throw new Error(await leerMensajeError(res, 'No se pudo cargar el historial de auditoría.'));
       }
     } catch (e) {
       console.error(e);
@@ -173,16 +197,17 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         method: 'POST',
       });
       if (res.ok) {
+        const corte = await res.json();
+        setCorteActivo(corte);
         mostrarNotificacion('Turno abierto exitosamente', 'success');
         fetchCorteActivo();
         fetchHistorialCortes();
       } else {
-        const data = await res.json();
-        mostrarNotificacion(data.detail || 'Error al abrir turno', 'error');
+        throw new Error(await leerMensajeError(res, 'No se pudo abrir el turno.'));
       }
     } catch (e) {
       console.error(e);
-      mostrarNotificacion('Error de conexión', 'error');
+      mostrarNotificacion(e.message || 'Error de red al abrir turno.', 'error');
     }
   };
 
@@ -204,40 +229,40 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         const data = await res.json();
         const msg = data.diferencia === 0 
           ? 'Turno cerrado sin diferencias.' 
-          : `Turno cerrado con ${data.diferencia > 0 ? 'sobrante' : 'faltante'} de $${Math.abs(data.diferencia).toFixed(2)}.`;
+          : `Turno cerrado con ${data.diferencia > 0 ? 'sobrante' : 'faltante'} de ${fmtMoneda(Math.abs(data.diferencia))}.`;
         
         mostrarNotificacion(msg, data.diferencia === 0 ? 'success' : 'warning');
         setCorteActivo(null);
         setEfectivoReal('');
         fetchHistorialCortes();
       } else {
-        const data = await res.json();
-        mostrarNotificacion(data.detail || 'Error al cerrar turno', 'error');
+        throw new Error(await leerMensajeError(res, 'No se pudo cerrar el turno.'));
       }
     } catch (e) {
       console.error(e);
-      mostrarNotificacion('Error de conexión', 'error');
+      mostrarNotificacion(e.message || 'Error de red al cerrar turno.', 'error');
     }
   };
 
   const descargarReporte = async (formato) => {
     if (!fechaInicioExp || !fechaFinExp) {
-      mostrarNotificacion('Selecciona un rango de fechas válido', 'warning');
+      mostrarNotificacion('Selecciona un rango de fechas válido', 'error');
+      return;
+    }
+    if (fechaFinExp < fechaInicioExp) {
+      mostrarNotificacion('La fecha final no puede ser anterior a la inicial', 'error');
       return;
     }
     setDescargando(true);
     try {
-      const token = sesion?.token;
-      // Usamos fetch directamente para manejar el blob, o window.open si el token puede enviarse por query,
-      // pero como es API segura, hacemos fetch de blob y forzamos descarga:
-      const res = await fetch(`http://127.0.0.1:8000/api/v1/reportes/exportar?fecha_inicio=${fechaInicioExp}&fecha_fin=${fechaFinExp}&formato=${formato}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const params = new URLSearchParams({
+        fecha_inicio: fechaInicioExp,
+        fecha_fin: fechaFinExp,
+        formato,
       });
+      const res = await authFetch(`/api/v1/reportes/exportar?${params.toString()}`, sesion);
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Error al generar el reporte');
+        throw new Error(await leerMensajeError(res, 'No se pudo generar el archivo de reporte.'));
       }
       
       const blob = await res.blob();
@@ -252,7 +277,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
       mostrarNotificacion(`Reporte en ${formato.toUpperCase()} descargado exitosamente`, 'success');
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de conexión al descargar el reporte', 'error');
+      mostrarNotificacion(e.message || 'Error de red al descargar el reporte.', 'error');
     } finally {
       setDescargando(false);
     }
@@ -327,6 +352,12 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         </div>
       </div>
 
+      {errorCorte && pestaña === 'corte' && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+          {errorCorte}
+        </div>
+      )}
+
       {pestaña === 'corte' && (
         <div className="space-y-6">
           {cargandoCorte ? (
@@ -346,20 +377,20 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <p className="text-gray-500 text-sm font-medium uppercase mb-2">Ventas Totales del Turno</p>
-                <p className="text-4xl font-bold text-gray-900 mb-6">${totalVentas.toFixed(2)}</p>
+                <p className="text-4xl font-bold text-gray-900 mb-6">{fmtMoneda(totalVentas)}</p>
                 
                 <div className="space-y-4">
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-gray-600">💵 Efectivo</span>
-                    <span className="font-semibold">${totalEfectivo.toFixed(2)}</span>
+                    <span className="font-semibold">{fmtMoneda(totalEfectivo)}</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-gray-600">💳 Tarjeta Crédito/Débito</span>
-                    <span className="font-semibold">${totalTarjeta.toFixed(2)}</span>
+                    <span className="font-semibold">{fmtMoneda(totalTarjeta)}</span>
                   </div>
                   <div className="flex justify-between border-b pb-2">
                     <span className="text-gray-600">🏦 Transferencia</span>
-                    <span className="font-semibold">${totalTransferencia.toFixed(2)}</span>
+                    <span className="font-semibold">{fmtMoneda(totalTransferencia)}</span>
                   </div>
                   <div className="flex justify-between text-red-500">
                     <span>⚠️ Mermas Registradas</span>
@@ -386,10 +417,10 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
                   </div>
                   
                   {efectivoReal !== '' && !isNaN(parseFloat(efectivoReal)) && (
-                    <div className={`p-4 rounded-lg border mb-4 ${parseFloat(efectivoReal) - totalEfectivo < 0 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-green-50 border-green-100 text-green-700'}`}>
-                      <p className="text-sm font-bold uppercase mb-1">Diferencia Proyectada en Efectivo</p>
+                    <div className={`p-4 rounded-lg border mb-4 ${parseFloat(efectivoReal) - totalVentas < 0 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-green-50 border-green-100 text-green-700'}`}>
+                      <p className="text-sm font-bold uppercase mb-1">Diferencia Proyectada</p>
                       <p className="text-xl font-bold">
-                        ${(parseFloat(efectivoReal) - totalEfectivo).toFixed(2)}
+                        {fmtMoneda(parseFloat(efectivoReal) - totalVentas)}
                       </p>
                     </div>
                   )}
@@ -427,12 +458,12 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
                     {historialCortes.map(c => (
                       <tr key={c.id_corte} className="hover:bg-gray-50/50">
                         <td className="py-3 px-4 font-mono text-gray-500">#{c.id_corte}</td>
-                        <td className="py-3 px-4">{new Date(c.fecha_apertura).toLocaleString('es-MX')}</td>
-                        <td className="py-3 px-4">{c.fecha_cierre ? new Date(c.fecha_cierre).toLocaleString('es-MX') : '-'}</td>
-                        <td className="py-3 px-4 text-right font-medium">${c.total_ventas.toFixed(2)}</td>
-                        <td className="py-3 px-4 text-right">${c.efectivo_real !== null ? c.efectivo_real.toFixed(2) : '-'}</td>
+                        <td className="py-3 px-4">{fmtFechaHora(c.fecha_apertura)}</td>
+                        <td className="py-3 px-4">{fmtFechaHora(c.fecha_cierre)}</td>
+                        <td className="py-3 px-4 text-right font-medium">{fmtMoneda(c.total_ventas)}</td>
+                        <td className="py-3 px-4 text-right">{c.efectivo_real !== null ? fmtMoneda(c.efectivo_real) : '-'}</td>
                         <td className={`py-3 px-4 text-right font-bold ${c.diferencia < 0 ? 'text-red-500' : c.diferencia > 0 ? 'text-green-500' : 'text-gray-500'}`}>
-                          {c.diferencia !== null ? `$${c.diferencia.toFixed(2)}` : '-'}
+                          {c.diferencia !== null ? fmtMoneda(c.diferencia) : '-'}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${c.estado === 'abierto' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
@@ -462,7 +493,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
                 <div className="flex justify-between items-center p-6 border-b border-gray-100">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Detalle de Corte #{corteSeleccionado.id_corte}</h2>
-                    <p className="text-xs text-gray-500 mt-1">Apertura: {new Date(corteSeleccionado.fecha_apertura).toLocaleString('es-MX')}</p>
+                    <p className="text-xs text-gray-500 mt-1">Apertura: {fmtFechaHora(corteSeleccionado.fecha_apertura)}</p>
                   </div>
                   <button onClick={() => setCorteSeleccionado(null)} className="text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -474,16 +505,16 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                       <p className="text-xs text-gray-500 uppercase font-bold">Ventas Totales</p>
-                      <p className="text-2xl font-black text-gray-900">${corteSeleccionado.total_ventas.toFixed(2)}</p>
+                      <p className="text-2xl font-black text-gray-900">{fmtMoneda(corteSeleccionado.total_ventas)}</p>
                     </div>
                     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                       <p className="text-xs text-gray-500 uppercase font-bold">Efectivo Reportado</p>
-                      <p className="text-2xl font-black text-gray-900">{corteSeleccionado.efectivo_real !== null ? `$${corteSeleccionado.efectivo_real.toFixed(2)}` : 'Pendiente'}</p>
+                      <p className="text-2xl font-black text-gray-900">{corteSeleccionado.efectivo_real !== null ? fmtMoneda(corteSeleccionado.efectivo_real) : 'Pendiente'}</p>
                     </div>
                     <div className={`p-4 rounded-xl border shadow-sm ${corteSeleccionado.diferencia < 0 ? 'bg-red-50 border-red-200' : corteSeleccionado.diferencia > 0 ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
                       <p className={`text-xs uppercase font-bold ${corteSeleccionado.diferencia < 0 ? 'text-red-700' : corteSeleccionado.diferencia > 0 ? 'text-green-700' : 'text-gray-500'}`}>Diferencia</p>
                       <p className={`text-2xl font-black ${corteSeleccionado.diferencia < 0 ? 'text-red-600' : corteSeleccionado.diferencia > 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                        {corteSeleccionado.diferencia !== null ? `$${corteSeleccionado.diferencia.toFixed(2)}` : '-'}
+                        {corteSeleccionado.diferencia !== null ? fmtMoneda(corteSeleccionado.diferencia) : '-'}
                       </p>
                     </div>
                   </div>
@@ -510,7 +541,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
                               <td className="py-2 px-4 font-mono text-gray-500">#{v.id_venta}</td>
                               <td className="py-2 px-4">{new Date(v.fecha).toLocaleTimeString('es-MX')}</td>
                               <td className="py-2 px-4 capitalize">{v.metodo_pago}</td>
-                              <td className="py-2 px-4 text-right font-medium">${v.total.toFixed(2)}</td>
+                              <td className="py-2 px-4 text-right font-medium">{fmtMoneda(v.total)}</td>
                               <td className="py-2 px-4 text-center">
                                 {v.anulada ? <span className="text-red-500 text-xs font-bold">ANULADA</span> : <span className="text-green-500 text-xs font-bold">OK</span>}
                               </td>
@@ -616,7 +647,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <p className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">Total del Periodo</p>
-                  <p className="text-2xl font-black text-gray-900">${reporteVentas.resumen?.total_ventas?.toFixed(2) ?? '0.00'}</p>
+                  <p className="text-2xl font-black text-gray-900">{fmtMoneda(reporteVentas.resumen?.total_ventas)}</p>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <p className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">Transacciones</p>
@@ -624,11 +655,11 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <p className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">Subtotal</p>
-                  <p className="text-2xl font-black text-gray-900">${reporteVentas.resumen?.subtotal?.toFixed(2) ?? '0.00'}</p>
+                  <p className="text-2xl font-black text-gray-900">{fmtMoneda(reporteVentas.resumen?.subtotal)}</p>
                 </div>
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <p className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">Impuestos</p>
-                  <p className="text-2xl font-black text-gray-900">${reporteVentas.resumen?.impuestos?.toFixed(2) ?? '0.00'}</p>
+                  <p className="text-2xl font-black text-gray-900">{fmtMoneda(reporteVentas.resumen?.impuestos)}</p>
                 </div>
               </div>
 
@@ -655,7 +686,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
                               {p.nombre}
                             </td>
                             <td className="py-2 text-right font-semibold">{p.unidades}</td>
-                            <td className="py-2 text-right text-[#4169E1] font-bold">${p.importe.toFixed(2)}</td>
+                            <td className="py-2 text-right text-[#4169E1] font-bold">{fmtMoneda(p.importe)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -679,7 +710,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
                           <div key={m.metodo_pago}>
                             <div className="flex justify-between text-sm mb-1">
                               <span className="capitalize font-medium text-gray-700">{m.metodo_pago}</span>
-                              <span className="font-bold text-gray-900">${m.total.toFixed(2)} <span className="text-gray-400 font-normal">({pct}%)</span></span>
+                              <span className="font-bold text-gray-900">{fmtMoneda(m.total)} <span className="text-gray-400 font-normal">({pct}%)</span></span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2">
                               <div className="bg-[#4169E1] h-2 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
@@ -920,4 +951,3 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
     </div>
   );
 }
-
