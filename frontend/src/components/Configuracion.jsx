@@ -1,6 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { authFetch } from '../lib/api';
+
+const ROLES_FALLBACK = [
+  { id_rol: 1, nombre: 'administrador' },
+  { id_rol: 2, nombre: 'cajero' },
+];
 
 async function leerRespuesta(res) {
   const data = await res.json().catch(() => ({}));
@@ -10,12 +15,20 @@ async function leerRespuesta(res) {
   return data;
 }
 
+const normalizarRol = (rol) => rol?.nombre || rol || 'Sin rol';
+
 export default function Configuracion({ sesion, mostrarNotificacion }) {
   const [pestaña, setPestaña] = useState('perfil');
   const esAdministrador = sesion?.usuario?.rol?.toLowerCase() === 'administrador';
   
   const [usuarios, setUsuarios] = useState([]);
   const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
+  const [errorUsuarios, setErrorUsuarios] = useState('');
+  const [perfilActual, setPerfilActual] = useState(null);
+  const [cargandoPerfil, setCargandoPerfil] = useState(false);
+  const [guardandoUsuario, setGuardandoUsuario] = useState(false);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [usuarioEnAccion, setUsuarioEnAccion] = useState(null);
 
   // Estados para el formulario
   const [nuevoNombre, setNuevoNombre] = useState('');
@@ -27,15 +40,39 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [errorEdicion, setErrorEdicion] = useState('');
 
+  const rolesDisponibles = useMemo(() => usuarios
+    .map((usuario) => usuario.rol)
+    .filter(Boolean)
+    .reduce((roles, rol) => {
+      if (roles.some((item) => item.id_rol === rol.id_rol)) return roles;
+      return [...roles, rol];
+    }, [...ROLES_FALLBACK])
+    .sort((a, b) => a.id_rol - b.id_rol), [usuarios]);
+
+  const cargarPerfil = useCallback(async () => {
+    setCargandoPerfil(true);
+    try {
+      const res = await authFetch('/api/v1/auth/me', sesion);
+      setPerfilActual(await leerRespuesta(res));
+    } catch (err) {
+      mostrarNotificacion(err.message || 'No se pudo cargar el perfil actual.', 'error');
+    } finally {
+      setCargandoPerfil(false);
+    }
+  }, [sesion, mostrarNotificacion]);
+
   const cargarUsuarios = useCallback(async () => {
     if (!esAdministrador) return;
     setCargandoUsuarios(true);
+    setErrorUsuarios('');
     try {
       const res = await authFetch('/api/v1/usuarios/', sesion);
       const data = await leerRespuesta(res);
-      setUsuarios(data);
+      setUsuarios([...data].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')));
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al cargar usuarios', 'error');
+      const mensaje = err.message || 'No se pudieron cargar los usuarios.';
+      setErrorUsuarios(mensaje);
+      mostrarNotificacion(mensaje, 'error');
     } finally {
       setCargandoUsuarios(false);
     }
@@ -44,11 +81,16 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
   useEffect(() => {
     if (pestaña === 'usuarios') {
       cargarUsuarios();
+    } else if (pestaña === 'perfil') {
+      cargarPerfil();
     }
-  }, [pestaña, cargarUsuarios]);
+  }, [pestaña, cargarUsuarios, cargarPerfil]);
 
-  const agregarUsuario = async () => {
-    if(!nuevoNombre || !nuevoEmail || !nuevoPassword) {
+  const agregarUsuario = async (e) => {
+    e.preventDefault();
+    const nombre = nuevoNombre.trim();
+    const email = nuevoEmail.trim();
+    if(!nombre || !email || !nuevoPassword) {
       mostrarNotificacion('Los campos nombre, email y contraseña son obligatorios.', 'error');
       return;
     }
@@ -56,12 +98,13 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       mostrarNotificacion('La contraseña debe tener mínimo 6 caracteres.', 'error');
       return;
     }
+    setGuardandoUsuario(true);
     try {
       const res = await authFetch('/api/v1/usuarios/', sesion, {
         method: 'POST',
         body: JSON.stringify({
-          nombre: nuevoNombre,
-          email: nuevoEmail,
+          nombre,
+          email,
           password: nuevoPassword,
           id_rol: parseInt(nuevoRol)
         })
@@ -71,14 +114,12 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       setNuevoEmail('');
       setNuevoPassword('');
       setNuevoRol('2');
-      mostrarNotificacion(`Usuario ${nuevoNombre} agregado correctamente.`);
+      mostrarNotificacion(`Usuario ${nombre} agregado correctamente.`);
       cargarUsuarios();
     } catch (err) {
-      if (err.message.toLowerCase().includes("registrado") || err.message.includes("400")) {
-        mostrarNotificacion("El email ya está registrado.", "error");
-      } else {
-        mostrarNotificacion(err.message || "Error al crear usuario", "error");
-      }
+      mostrarNotificacion(err.message || "Error al crear usuario", "error");
+    } finally {
+      setGuardandoUsuario(false);
     }
   };
 
@@ -97,10 +138,17 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
   const guardarEdicion = async (e) => {
     e.preventDefault();
     setErrorEdicion('');
+    const nombre = usuarioEditando.nombre.trim();
+    const email = usuarioEditando.email.trim();
+    if (!nombre || !email) {
+      setErrorEdicion('Nombre y email son obligatorios.');
+      return;
+    }
+    setGuardandoEdicion(true);
     try {
       const payload = {
-        nombre: usuarioEditando.nombre,
-        email: usuarioEditando.email,
+        nombre,
+        email,
         id_rol: parseInt(usuarioEditando.id_rol)
       };
       if (usuarioEditando.password) {
@@ -121,12 +169,21 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       setUsuarioEditando(null);
       cargarUsuarios();
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al actualizar usuario', 'error');
+      const mensaje = err.message || 'Error al actualizar usuario';
+      setErrorEdicion(mensaje);
+      mostrarNotificacion(mensaje, 'error');
+    } finally {
+      setGuardandoEdicion(false);
     }
   };
 
   const desactivarUsuario = async (u) => {
+    if (u.id_usuario === sesion?.usuario?.id) {
+      mostrarNotificacion('No puedes desactivar tu propio usuario desde esta sesión.', 'error');
+      return;
+    }
     if (!window.confirm(`¿Seguro que deseas desactivar al usuario ${u.nombre}?`)) return;
+    setUsuarioEnAccion(u.id_usuario);
     try {
       const res = await authFetch(`/api/v1/usuarios/${u.id_usuario}`, sesion, {
         method: 'DELETE'
@@ -136,12 +193,26 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       cargarUsuarios();
     } catch (err) {
       mostrarNotificacion(err.message || 'Error al desactivar usuario', 'error');
+    } finally {
+      setUsuarioEnAccion(null);
     }
   };
 
-  const simularGuardado = (e) => {
-    e.preventDefault();
-    mostrarNotificacion("¡Configuración guardada exitosamente!");
+  const activarUsuario = async (u) => {
+    setUsuarioEnAccion(u.id_usuario);
+    try {
+      const res = await authFetch(`/api/v1/usuarios/${u.id_usuario}`, sesion, {
+        method: 'PATCH',
+        body: JSON.stringify({ activo: true })
+      });
+      await leerRespuesta(res);
+      mostrarNotificacion('Usuario activado correctamente.');
+      cargarUsuarios();
+    } catch (err) {
+      mostrarNotificacion(err.message || 'Error al activar usuario', 'error');
+    } finally {
+      setUsuarioEnAccion(null);
+    }
   };
 
   if (!esAdministrador) {
@@ -182,50 +253,86 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       </div>
 
       {pestaña === 'perfil' && (
-        <form onSubmit={simularGuardado} className="max-w-2xl bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-xl font-bold mb-6 text-gray-900">Identidad Legal</h2>
-          <div className="space-y-4">
+        <div className="max-w-2xl bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-start justify-between gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Legal / Razón Social</label>
-              <input type="text" defaultValue="STOKO SOLUCIONES TECNOLÓGICAS S.A. DE C.V." className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-[#4169E1]" />
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
+                Datos desde el API
+              </p>
+              <h2 className="text-xl font-bold text-gray-900">Perfil de la sesión</h2>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">RFC / ID Fiscal</label>
-                <input type="text" defaultValue="SST123456789" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-[#4169E1]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Régimen Fiscal</label>
-                <input type="text" defaultValue="General de Ley Personas Morales" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-[#4169E1]" />
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={cargarPerfil}
+              disabled={cargandoPerfil}
+              className="px-4 py-2 text-[#4169E1] bg-blue-50 rounded-lg font-bold hover:bg-blue-100 disabled:opacity-50 text-sm"
+            >
+              {cargandoPerfil ? 'Actualizando...' : 'Actualizar'}
+            </button>
           </div>
 
-          <h2 className="text-xl font-bold mt-8 mb-6 text-gray-900">Dirección para Tickets</h2>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+          {cargandoPerfil ? (
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : perfilActual ? (
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Calle y Número</label>
-                <input type="text" defaultValue="Av. Reforma 405, Piso 12" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-[#4169E1]" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 font-semibold">
+                  {perfilActual.nombre}
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Código Postal</label>
-                <input type="text" defaultValue="06600" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-[#4169E1]" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
+                  {perfilActual.email}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                  <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 capitalize">
+                    {normalizarRol(perfilActual.rol)}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <div className={`w-full px-4 py-3 border rounded-lg font-semibold ${perfilActual.activo ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                    {perfilActual.activo ? 'Activo' : 'Inactivo'}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="mt-8 flex justify-end gap-4">
-            <button type="button" className="px-6 py-2 text-gray-600 bg-gray-100 rounded-lg font-bold hover:bg-gray-200">Descartar</button>
-            <button type="submit" className="px-6 py-2 bg-[#4169E1] text-white rounded-lg font-bold shadow hover:bg-blue-800">Guardar Cambios</button>
-          </div>
-        </form>
+          ) : (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+              No se pudo cargar el perfil desde el servidor.
+            </div>
+          )}
+        </div>
       )}
 
       {pestaña === 'usuarios' && (
         <div className="flex gap-6">
           <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-xl font-bold mb-4 text-gray-900">Directorio de Personal</h2>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Directorio de Personal</h2>
+              <button
+                type="button"
+                onClick={cargarUsuarios}
+                disabled={cargandoUsuarios}
+                className="text-xs font-bold text-[#4169E1] bg-blue-50 hover:bg-blue-100 disabled:opacity-50 rounded-lg px-3 py-2"
+              >
+                {cargandoUsuarios ? 'Actualizando...' : 'Actualizar'}
+              </button>
+            </div>
+            {errorUsuarios && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+                {errorUsuarios}
+              </div>
+            )}
             {cargandoUsuarios ? (
               <p className="text-gray-500">Cargando usuarios...</p>
             ) : (
@@ -241,10 +348,11 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
                 </thead>
                 <tbody>
                   {usuarios.map((u) => {
-                    const rolNombre = u.rol?.nombre || (u.id_rol === 1 ? 'Administrador' : 'Cajero');
+                    const rolNombre = normalizarRol(u.rol);
                     const colorRol = rolNombre.toLowerCase() === 'administrador' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700';
                     const estado = u.activo ? "● Activo" : "○ Inactivo";
                     const colorEstado = u.activo ? "text-green-600" : "text-red-500";
+                    const enAccion = usuarioEnAccion === u.id_usuario;
                     return (
                       <tr key={u.id_usuario} className="border-b border-gray-50">
                         <td className="py-4 font-medium">{u.nombre}</td>
@@ -252,9 +360,26 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
                         <td className="py-4"><span className={`${colorRol} px-2 py-1 rounded text-xs font-bold uppercase`}>{rolNombre}</span></td>
                         <td className={`py-4 ${colorEstado} text-sm font-semibold`}>{estado}</td>
                         <td className="py-4 text-right">
-                          <button onClick={() => iniciarEdicion(u)} className="text-[#4169E1] hover:underline text-sm font-semibold mr-3">Editar</button>
-                          {u.activo && (
-                            <button onClick={() => desactivarUsuario(u)} className="text-red-500 hover:underline text-sm font-semibold">Desactivar</button>
+                          <button type="button" onClick={() => iniciarEdicion(u)} className="text-[#4169E1] hover:underline text-sm font-semibold mr-3">Editar</button>
+                          {u.activo ? (
+                            <button
+                              type="button"
+                              disabled={enAccion || u.id_usuario === sesion?.usuario?.id}
+                              onClick={() => desactivarUsuario(u)}
+                              className="text-red-500 hover:underline text-sm font-semibold disabled:text-gray-300 disabled:no-underline"
+                              title={u.id_usuario === sesion?.usuario?.id ? 'No puedes desactivar tu propia sesión' : undefined}
+                            >
+                              {enAccion ? 'Procesando...' : 'Desactivar'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={enAccion}
+                              onClick={() => activarUsuario(u)}
+                              className="text-green-600 hover:underline text-sm font-semibold disabled:text-gray-300 disabled:no-underline"
+                            >
+                              {enAccion ? 'Procesando...' : 'Activar'}
+                            </button>
                           )}
                         </td>
                       </tr>
@@ -270,19 +395,22 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
             )}
           </div>
           
-          <div className="w-80 bg-gray-50 p-6 rounded-2xl border border-gray-200 h-fit">
+          <form onSubmit={agregarUsuario} className="w-80 bg-gray-50 p-6 rounded-2xl border border-gray-200 h-fit">
             <h3 className="font-bold text-gray-900 mb-4">Añadir Usuario</h3>
             <input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} placeholder="Nombre completo" className="w-full mb-3 px-4 py-2 border border-gray-200 rounded-lg text-sm" />
             <input type="email" value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} placeholder="Correo electrónico" className="w-full mb-3 px-4 py-2 border border-gray-200 rounded-lg text-sm" />
             <input type="password" value={nuevoPassword} onChange={(e) => setNuevoPassword(e.target.value)} placeholder="Contraseña" className="w-full mb-3 px-4 py-2 border border-gray-200 rounded-lg text-sm" />
             <select value={nuevoRol} onChange={(e) => setNuevoRol(e.target.value)} className="w-full mb-6 px-4 py-2 border border-gray-200 rounded-lg bg-white text-sm">
-              <option value="2">Cajero</option>
-              <option value="1">Administrador</option>
+              {rolesDisponibles.map((rol) => (
+                <option key={rol.id_rol} value={rol.id_rol}>
+                  {normalizarRol(rol)}
+                </option>
+              ))}
             </select>
-            <button onClick={agregarUsuario} className="w-full bg-[#4169E1] text-white font-bold py-2 rounded-lg shadow hover:bg-blue-800 transition-colors text-sm">
-              Guardar Usuario
+            <button type="submit" disabled={guardandoUsuario} className="w-full bg-[#4169E1] text-white font-bold py-2 rounded-lg shadow hover:bg-blue-800 transition-colors text-sm disabled:opacity-60">
+              {guardandoUsuario ? 'Guardando...' : 'Guardar Usuario'}
             </button>
-          </div>
+          </form>
         </div>
       )}
 
@@ -310,13 +438,24 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Rol</label>
                 <select value={usuarioEditando.id_rol} onChange={(e) => setUsuarioEditando({...usuarioEditando, id_rol: e.target.value})} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 outline-none text-sm">
-                  <option value="2">Cajero</option>
-                  <option value="1">Administrador</option>
+                  {rolesDisponibles.map((rol) => (
+                    <option key={rol.id_rol} value={rol.id_rol}>
+                      {normalizarRol(rol)}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button type="button" onClick={() => setModalEdicion(false)} className="px-5 py-2 text-gray-600 bg-gray-100 rounded-xl font-bold hover:bg-gray-200 text-sm">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-[#4169E1] text-white rounded-xl font-bold hover:bg-[#3155c7] text-sm">Guardar</button>
+                <button
+                  type="button"
+                  onClick={() => { setModalEdicion(false); setUsuarioEditando(null); }}
+                  className="px-5 py-2 text-gray-600 bg-gray-100 rounded-xl font-bold hover:bg-gray-200 text-sm"
+                >
+                  Cancelar
+                </button>
+                <button type="submit" disabled={guardandoEdicion} className="px-5 py-2 bg-[#4169E1] text-white rounded-xl font-bold hover:bg-[#3155c7] text-sm disabled:opacity-60">
+                  {guardandoEdicion ? 'Guardando...' : 'Guardar'}
+                </button>
               </div>
             </form>
           </div>
