@@ -11,6 +11,59 @@ const fmtMoneda = (valor) =>
 
 const fmtFechaHora = (fecha) => fecha ? new Date(fecha).toLocaleString('es-MX') : '-';
 
+const renderInlineMarkdown = (texto) => (
+  texto.split(/(\*\*[^*]+\*\*)/g).map((parte, index) => {
+    if (parte.startsWith('**') && parte.endsWith('**')) {
+      return <strong key={index} className="font-bold text-gray-950">{parte.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{parte}</span>;
+  })
+);
+
+const MarkdownInsights = ({ texto }) => (
+  <div className="space-y-3 text-sm leading-7 text-gray-700">
+    {texto.split('\n').map((linea, index) => {
+      const limpia = linea.trim();
+      if (!limpia) return <div key={index} className="h-1" />;
+
+      const heading = limpia.match(/^(#{1,3})\s+(.+)$/);
+      if (heading) {
+        const nivel = heading[1].length;
+        const clase = nivel === 1 ? 'text-xl' : nivel === 2 ? 'text-lg' : 'text-base';
+        return (
+          <h4 key={index} className={`${clase} font-black text-gray-950 pt-2`}>
+            {renderInlineMarkdown(heading[2])}
+          </h4>
+        );
+      }
+
+      const numerada = limpia.match(/^(\d+)[.)]\s+(.+)$/);
+      if (numerada) {
+        return (
+          <div key={index} className="flex gap-3 rounded-lg bg-indigo-50/70 px-4 py-3">
+            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[#4169E1] text-xs font-black text-white">
+              {numerada[1]}
+            </span>
+            <p className="font-semibold text-gray-800">{renderInlineMarkdown(numerada[2])}</p>
+          </div>
+        );
+      }
+
+      const bullet = limpia.match(/^[-*]\s+(.+)$/);
+      if (bullet) {
+        return (
+          <div key={index} className="flex gap-3 pl-2">
+            <span className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-[#4169E1]" />
+            <p>{renderInlineMarkdown(bullet[1])}</p>
+          </div>
+        );
+      }
+
+      return <p key={index}>{renderInlineMarkdown(limpia)}</p>;
+    })}
+  </div>
+);
+
 export default function ReportesAuditorias({ mostrarNotificacion, sesion, onCorteActualizado }) {
   const [pestaña, setPestaña] = useState('corte');
 
@@ -757,18 +810,20 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion, onCort
 
           {/* ── 3. Resultados de la IA ── */}
           {insightsTexto && (
-            <div ref={insightsRef} className="bg-gradient-to-br from-[#1a237e] to-[#283593] rounded-2xl p-8 text-white shadow-xl animate-[fadeIn_0.4s_ease-out]">
-              <div className="flex items-center gap-3 mb-6">
+            <div ref={insightsRef} className="bg-white rounded-2xl border border-indigo-100 shadow-xl animate-[fadeIn_0.4s_ease-out] overflow-hidden">
+              <div className="flex w-full items-center gap-3 bg-gradient-to-r from-[#1a237e] to-[#4169E1] px-6 py-5 text-white">
                 <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-indigo-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                  <svg className="w-6 h-6 text-indigo-100" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                 </div>
                 <div>
-                  <p className="text-indigo-300 text-xs font-bold tracking-widest uppercase">✨ Gemini IA — Análisis Estratégico</p>
-                  <p className="text-white/60 text-xs mt-0.5">{insightsFechaInicio} → {insightsFechaFin}</p>
+                  <p className="text-indigo-100 text-xs font-bold tracking-widest uppercase">Gemini IA - Analisis Estrategico</p>
+                  <p className="text-white/70 text-xs mt-0.5">{insightsFechaInicio} - {insightsFechaFin}</p>
                 </div>
               </div>
-              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-                <pre className="whitespace-pre-wrap font-sans text-sm text-indigo-100 leading-relaxed">{insightsTexto}</pre>
+              <div className="p-6">
+                <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-6">
+                  <MarkdownInsights texto={insightsTexto} />
+                </div>
               </div>
             </div>
           )}
