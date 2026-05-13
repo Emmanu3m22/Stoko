@@ -11,7 +11,9 @@ const fmt = (n) =>
 export default function RegistroVenta({
   productos = [],
   sesion,
+  corteActivo,
   onVentaRegistrada,
+  onCorteActualizado,
   onVentaPendienteGuardada,
   mostrarNotificacion,
 }) {
@@ -21,6 +23,7 @@ export default function RegistroVenta({
   const [ventaRegistrada, setVentaRegistrada] = useState(null);
   const [ventaPendiente, setVentaPendiente] = useState(null);
   const [procesando, setProcesando] = useState(false);
+  const [abriendo, setAbriendo] = useState(false);
   const [vista, setVista] = useState('venta');
   const inputRef = useRef(null);
 
@@ -100,6 +103,22 @@ export default function RegistroVenta({
     })),
   });
 
+  // ── Abrir turno (─────────────────────────────────────────────────────────────────
+  const abrirTurno = async () => {
+    if (abriendo) return;
+    setAbriendo(true);
+    try {
+      const res = await authFetch('/api/v1/cortes/', sesion, { method: 'POST' });
+      const data = await leerRespuestaApi(res, 'No se pudo abrir el turno.');
+      mostrarNotificacion(`Turno #${data.id_corte} abierto correctamente.`);
+      await onCorteActualizado?.();
+    } catch (err) {
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo abrir el turno.'), 'error');
+    } finally {
+      setAbriendo(false);
+    }
+  };
+
   const guardarVentaOffline = async (payload) => {
     const venta = await guardarVentaPendiente({
       payload,
@@ -147,6 +166,46 @@ export default function RegistroVenta({
       setProcesando(false);
     }
   };
+
+  // ── Pantalla: cargando estado del turno ──────────────────────────────────
+  if (corteActivo === undefined) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-24 text-center text-gray-400">
+        <div className="w-12 h-12 border-4 border-blue-200 border-t-[#4169E1] rounded-full animate-spin mb-4" />
+        <p className="text-sm font-medium">Verificando turno de caja...</p>
+      </div>
+    );
+  }
+
+  // ── Pantalla: sin turno abierto ───────────────────────────────────────────
+  if (!corteActivo) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-24 text-center">
+        <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+          <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-black text-gray-900 mb-2">Sin turno abierto</h2>
+        <p className="text-gray-500 text-sm mb-1 max-w-xs leading-relaxed">
+          Para registrar ventas primero debes abrir un turno de caja.
+        </p>
+        <p className="text-gray-400 text-xs mb-8">
+          El turno registra todas las transacciones del periodo y permite el corte de caja al final del día.
+        </p>
+        <button
+          onClick={abrirTurno}
+          disabled={abriendo}
+          className="bg-[#4169E1] disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-[#3155c7] transition-colors shadow-lg shadow-blue-200 flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          {abriendo ? 'Abriendo turno...' : 'Abrir turno ahora'}
+        </button>
+      </div>
+    );
+  }
 
   // ── Pantalla de confirmación ───────────────────────────────────────────────
   if (ventaRegistrada) {

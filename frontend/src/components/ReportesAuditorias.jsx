@@ -11,7 +11,7 @@ const fmtMoneda = (valor) =>
 
 const fmtFechaHora = (fecha) => fecha ? new Date(fecha).toLocaleString('es-MX') : '-';
 
-export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
+export default function ReportesAuditorias({ mostrarNotificacion, sesion, onCorteActualizado }) {
   const [pestaña, setPestaña] = useState('corte');
 
   const esAdministrador = sesion?.usuario?.rol?.toLowerCase() === 'administrador';
@@ -190,6 +190,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         mostrarNotificacion('Turno abierto exitosamente', 'success');
         fetchCorteActivo();
         fetchHistorialCortes();
+        await onCorteActualizado?.();
       } else {
         await leerRespuestaApi(res, 'No se pudo abrir el turno.');
       }
@@ -223,6 +224,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         setCorteActivo(null);
         setEfectivoReal('');
         fetchHistorialCortes();
+        await onCorteActualizado?.();
       } else {
         await leerRespuestaApi(res, 'No se pudo cerrar el turno.');
       }

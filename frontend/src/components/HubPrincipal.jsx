@@ -206,12 +206,13 @@ export default function HubPrincipal({ sesion, onLogout }) {
     setTimeout(() => setToast({ visible: false, mensaje: '', tipo: '' }), 3500);
   }, []);
 
-  // ── ÚNICA fuente de verdad para productos y categorías ─────────────────────
+  // ── ÚNICA fuente de verdad para productos, categorías y corte activo ────────
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargando,  setCargando]  = useState(true);
   const [ventasPendientes, setVentasPendientes] = useState(0);
   const [sincronizandoVentas, setSincronizandoVentas] = useState(false);
+  const [corteActivo, setCorteActivo] = useState(undefined); // undefined = cargando, null = sin turno
 
   const fetchProductos = useCallback(async () => {
     setCargando(true);
@@ -236,6 +237,17 @@ export default function HubPrincipal({ sesion, onLogout }) {
       mostrarNotificacion(mensajeErrorApi(err, 'No se pudieron cargar las categorías.'), 'error');
     }
   }, [sesion, mostrarNotificacion]);
+
+  const fetchCorteActivo = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/v1/cortes/activo', sesion);
+      if (res.status === 404) { setCorteActivo(null); return; }
+      const data = await leerRespuestaApi(res, '');
+      setCorteActivo(data);
+    } catch {
+      setCorteActivo(null);
+    }
+  }, [sesion]);
 
   const actualizarVentasPendientes = useCallback(async () => {
     setVentasPendientes(await contarVentasPendientes({ usuarioId: sesion?.usuario?.id }));
@@ -272,7 +284,8 @@ export default function HubPrincipal({ sesion, onLogout }) {
   useEffect(() => {
     fetchProductos();
     fetchCategorias();
-  }, [fetchProductos, fetchCategorias]);
+    fetchCorteActivo();
+  }, [fetchProductos, fetchCategorias, fetchCorteActivo]);
 
   useEffect(() => {
     actualizarVentasPendientes();
@@ -451,13 +464,15 @@ export default function HubPrincipal({ sesion, onLogout }) {
         <RegistroVenta
           productos={productos}
           sesion={sesion}
-          onVentaRegistrada={fetchProductos}
+          corteActivo={corteActivo}
+          onVentaRegistrada={async () => { await fetchProductos(); await fetchCorteActivo(); }}
+          onCorteActualizado={fetchCorteActivo}
           onVentaPendienteGuardada={() => sincronizarVentasOffline()}
           mostrarNotificacion={mostrarNotificacion}
         />
       );
       case 'reportes':  return esAdministrador
-        ? <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} sesion={sesion} />
+        ? <ReportesAuditorias mostrarNotificacion={mostrarNotificacion} sesion={sesion} onCorteActualizado={fetchCorteActivo} />
         : <Dashboard productos={productos} cargando={cargando} onNavegar={setMenuActivo} mostrarNotificacion={mostrarNotificacion} />;
       case 'config':    return esAdministrador
         ? <Configuracion sesion={sesion} mostrarNotificacion={mostrarNotificacion} />

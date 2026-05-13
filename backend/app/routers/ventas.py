@@ -64,6 +64,13 @@ def registrar_venta(
             models.CorteCaja.estado == "abierto",
         ).first()
 
+    # ── Regla de negocio: no se puede vender sin un turno abierto ──────────────
+    if not corte:
+        raise HTTPException(
+            status_code=400,
+            detail="No tienes un turno de caja abierto. Abre un turno antes de registrar ventas.",
+        )
+
     for item in datos.items:
         producto = db.query(models.Producto).filter(
             models.Producto.id_producto == item.id_producto
