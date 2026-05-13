@@ -59,13 +59,6 @@ function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
   const valorInv     = productos.reduce((a, p) => a + p.precio_unitario * p.stock_actual, 0);
   const fmt          = (n) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
 
-  const kpis = [
-    { label: 'Ventas hoy',      valor: '$12,450',         sub: '+8.3% vs ayer',             color: 'text-emerald-600', bg: 'bg-emerald-50',  icon: 'trend' },
-    { label: 'Stock bajo',      valor: `${stockBajos.length} items`, sub: 'Requieren reabasto', color: 'text-amber-500',  bg: 'bg-amber-50',    icon: 'warn'  },
-    { label: 'Ops. del día',    valor: '24',              sub: 'Completadas',                color: 'text-[#4169E1]',  bg: 'bg-blue-50',     icon: 'check' },
-    { label: 'Total productos', valor: cargando ? '…' : String(total), sub: 'En catálogo',  color: 'text-gray-600',   bg: 'bg-gray-100',    icon: 'box'   },
-  ];
-
   return (
     <div className="space-y-8">
       {/* Banner */}
@@ -91,20 +84,6 @@ function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map(({ label, valor, sub, color, bg, icon }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-            <div className={`inline-flex items-center gap-1.5 ${bg} rounded-lg px-2.5 py-1 mb-3`}>
-              <span className={`${color}`}><Ico d={D[icon]} className="w-3.5 h-3.5" /></span>
-              <span className={`text-xs font-bold uppercase tracking-wide ${color}`}>{label}</span>
-            </div>
-            <p className="text-2xl font-black text-gray-900">{valor}</p>
-            <p className="text-xs text-gray-400 mt-1">{sub}</p>
-          </div>
-        ))}
       </div>
 
       {/* ── Sección de stock bajo ── */}
