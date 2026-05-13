@@ -49,17 +49,33 @@ def registrar_incidencia(
                    f"Stock actual: {producto.stock_actual}",
         )
 
-    producto.stock_actual = nuevo_stock
+    if datos.id_corte:
+        corte = db.query(models.CorteCaja).filter(
+            models.CorteCaja.id_corte == datos.id_corte,
+            models.CorteCaja.estado == "abierto",
+        ).first()
+        if not corte:
+            raise HTTPException(status_code=400, detail="El turno indicado no existe o está cerrado")
+        if corte.id_usuario != current_user.id_usuario:
+            raise HTTPException(status_code=403, detail="No puedes registrar mermas en el turno de otro usuario")
+    else:
+        corte = db.query(models.CorteCaja).filter(
+            models.CorteCaja.id_usuario == current_user.id_usuario,
+            models.CorteCaja.estado == "abierto",
+        ).first()
 
-    corte = db.query(models.CorteCaja).filter(
-        models.CorteCaja.id_usuario == current_user.id_usuario,
-        models.CorteCaja.estado == "abierto",
-    ).first()
+    if not corte:
+        raise HTTPException(
+            status_code=400,
+            detail="No tienes un turno de caja abierto. Abre un turno antes de registrar mermas o ajustes.",
+        )
+
+    producto.stock_actual = nuevo_stock
 
     incidencia = models.Incidencia(
         id_producto=datos.id_producto,
         id_usuario=current_user.id_usuario,
-        id_corte=datos.id_corte if datos.id_corte else (corte.id_corte if corte else None),
+        id_corte=corte.id_corte,
         cantidad=datos.cantidad,
         causa=datos.causa,
     )

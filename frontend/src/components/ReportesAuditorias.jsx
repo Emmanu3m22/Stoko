@@ -226,7 +226,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion, onCort
   useEffect(() => {
     if (pestaña === 'auditoria') {
       fetchAuditorias();
-    } else if (pestaña === 'corte') {
+    } else if (pestaña === 'corte' || pestaña === 'mermas') {
       fetchCorteActivo();
       fetchHistorialCortes();
     }

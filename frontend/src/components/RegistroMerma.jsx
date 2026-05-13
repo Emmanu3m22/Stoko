@@ -49,6 +49,11 @@ export default function RegistroMerma({ mostrarNotificacion, sesion, idCorteActi
 
   const registrarMerma = async (e) => {
     e.preventDefault();
+
+    if (!idCorteActivo) {
+      mostrarNotificacion('Abre un turno de caja antes de registrar mermas.', 'error');
+      return;
+    }
     
     if (!productoSeleccionado) {
       mostrarNotificacion('Selecciona un producto', 'warning');
@@ -100,6 +105,31 @@ export default function RegistroMerma({ mostrarNotificacion, sesion, idCorteActi
       setCargando(false);
     }
   };
+
+  if (idCorteActivo === undefined) {
+    return (
+      <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-center">
+        <div className="w-12 h-12 border-4 border-blue-200 border-t-[#4169E1] rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-sm font-semibold text-gray-500">Verificando turno de caja...</p>
+      </div>
+    );
+  }
+
+  if (!idCorteActivo) {
+    return (
+      <div className="bg-white p-8 rounded-2xl border border-amber-200 shadow-sm text-center">
+        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-black text-gray-900 mb-2">Sin turno abierto</h3>
+        <p className="text-sm text-gray-500 max-w-md mx-auto">
+          Las mermas y ajustes de inventario deben quedar ligados a un turno de caja. Abre un turno desde Cierre de Turno antes de registrar movimientos.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-[fadeIn_0.3s_ease-out]">
