@@ -93,6 +93,14 @@ def actualizar_usuario(
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     updates = datos.model_dump(exclude_unset=True)
+    if "email" in updates:
+        existente = db.query(models.Usuario).filter(
+            models.Usuario.email == updates["email"],
+            models.Usuario.id_usuario != usuario_id,
+        ).first()
+        if existente:
+            raise HTTPException(status_code=400, detail="El email ya está registrado")
+
     if "password" in updates:
         updates["password"] = hash_password(updates["password"])
 
@@ -121,6 +129,8 @@ def desactivar_usuario(
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if usuario.id_usuario == _admin.id_usuario:
+        raise HTTPException(status_code=400, detail="No puedes desactivar tu propio usuario")
 
     usuario.activo = False
     db.commit()
