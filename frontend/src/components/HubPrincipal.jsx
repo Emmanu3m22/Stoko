@@ -3,7 +3,7 @@ import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
-import { authFetch } from '../lib/api';
+import { authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 import {
   VENTAS_OFFLINE_EVENT,
   contarVentasPendientes,
@@ -217,25 +217,25 @@ export default function HubPrincipal({ sesion, onLogout }) {
     setCargando(true);
     try {
       const res = await authFetch('/api/v1/productos/', sesion);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
+      const data = await leerRespuestaApi(res, 'No se pudieron cargar los productos.');
       setProductos(data.map(normalizarProducto));
-    } catch {
+    } catch (err) {
       setProductos([]);
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudieron cargar los productos.'), 'error');
     } finally {
       setCargando(false);
     }
-  }, [sesion]);
+  }, [sesion, mostrarNotificacion]);
 
   const fetchCategorias = useCallback(async () => {
     try {
       const res = await authFetch('/api/v1/categorias/', sesion);
-      if (!res.ok) throw new Error();
-      setCategorias(await res.json());
-    } catch {
+      setCategorias(await leerRespuestaApi(res, 'No se pudieron cargar las categorías.'));
+    } catch (err) {
       setCategorias([]);
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudieron cargar las categorías.'), 'error');
     }
-  }, [sesion]);
+  }, [sesion, mostrarNotificacion]);
 
   const actualizarVentasPendientes = useCallback(async () => {
     setVentasPendientes(await contarVentasPendientes({ usuarioId: sesion?.usuario?.id }));
@@ -304,12 +304,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
 
     try {
       const res = await authFetch(`/api/v1/productos/${id}`, sesion, { method: 'DELETE' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'No se pudo eliminar el producto.');
+      await leerRespuestaApi(res, 'No se pudo eliminar el producto.');
       setProductos((prev) => prev.filter((p) => p.id !== id));
       mostrarNotificacion('Producto eliminado del inventario.', 'error');
     } catch (err) {
-      mostrarNotificacion(err.message || 'No se pudo eliminar el producto.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo eliminar el producto.'), 'error');
     }
   };
 
@@ -332,14 +331,13 @@ export default function HubPrincipal({ sesion, onLogout }) {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'No se pudo crear el producto.');
+      const data = await leerRespuestaApi(res, 'No se pudo crear el producto.');
       const nuevo = normalizarProducto(data);
       setProductos((prev) => [...prev, nuevo].sort((a, b) => a.nombre.localeCompare(b.nombre)));
       mostrarNotificacion(`Producto "${nuevo.nombre}" agregado exitosamente al catálogo.`);
       return true;
     } catch (err) {
-      mostrarNotificacion(err.message || 'No se pudo crear el producto.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo crear el producto.'), 'error');
       return false;
     }
   };
@@ -363,14 +361,13 @@ export default function HubPrincipal({ sesion, onLogout }) {
         method: 'PATCH',
         body: JSON.stringify(payload),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'No se pudo actualizar el producto.');
+      const data = await leerRespuestaApi(res, 'No se pudo actualizar el producto.');
       const actualizado = normalizarProducto(data);
       setProductos((prev) => prev.map((p) => (p.id === id ? actualizado : p)));
       mostrarNotificacion(`Producto "${actualizado.nombre}" actualizado.`);
       return true;
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al actualizar el producto.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo actualizar el producto.'), 'error');
       return false;
     }
   };
@@ -386,13 +383,12 @@ export default function HubPrincipal({ sesion, onLogout }) {
         method: 'POST',
         body: JSON.stringify({ nombre }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'Error al crear la categoría.');
+      const data = await leerRespuestaApi(res, 'No se pudo crear la categoría.');
       setCategorias([...categorias, data]);
       mostrarNotificacion(`Categoría "${nombre}" creada con éxito.`);
       return true;
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al crear la categoría.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo crear la categoría.'), 'error');
       return false;
     }
   };
@@ -405,12 +401,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
 
     try {
       const res = await authFetch(`/api/v1/categorias/${id}`, sesion, { method: 'DELETE' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'Error al eliminar');
+      await leerRespuestaApi(res, 'No se pudo eliminar la categoría.');
       setCategorias((prev) => prev.filter((c) => c.id_categoria !== id));
       mostrarNotificacion('Categoría eliminada con éxito.');
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al conectar con el servidor.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo eliminar la categoría.'), 'error');
     }
   };
 
@@ -425,12 +420,11 @@ export default function HubPrincipal({ sesion, onLogout }) {
         method: 'PATCH',
         body: JSON.stringify({ nombre }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || 'Error al actualizar');
+      const data = await leerRespuestaApi(res, 'No se pudo actualizar la categoría.');
       setCategorias((prev) => prev.map((c) => c.id_categoria === id ? data : c));
       mostrarNotificacion('Categoría actualizada.');
     } catch (err) {
-      mostrarNotificacion(err.message || 'Error al actualizar la categoría.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo actualizar la categoría.'), 'error');
     }
   };
 

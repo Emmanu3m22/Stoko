@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { authFetch } from '../lib/api';
+import { authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 
 const categoriaVacia = { id_categoria: null, nombre: '' };
-
-async function leerRespuesta(res) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.detail || 'No se pudo completar la operación.');
-  }
-  return data;
-}
 
 export default function GestionCategorias({ sesion, mostrarNotificacion }) {
   const [categorias, setCategorias] = useState([]);
@@ -24,9 +16,9 @@ export default function GestionCategorias({ sesion, mostrarNotificacion }) {
     setError('');
     try {
       const res = await authFetch('/api/v1/categorias/', sesion);
-      setCategorias(await leerRespuesta(res));
+      setCategorias(await leerRespuestaApi(res, 'No se pudieron cargar las categorías.'));
     } catch (err) {
-      setError(err.message || 'No se pudieron cargar las categorías.');
+      setError(mensajeErrorApi(err, 'No se pudieron cargar las categorías.'));
     } finally {
       setCargando(false);
     }
@@ -65,12 +57,12 @@ export default function GestionCategorias({ sesion, mostrarNotificacion }) {
           body: JSON.stringify({ nombre }),
         },
       );
-      await leerRespuesta(res);
+      await leerRespuestaApi(res, 'No se pudo guardar la categoría.');
       setModalAbierto(false);
       mostrarNotificacion(esEdicion ? 'Categoría actualizada.' : 'Categoría creada.');
       await cargarCategorias();
     } catch (err) {
-      mostrarNotificacion(err.message || 'No se pudo guardar la categoría.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo guardar la categoría.'), 'error');
     } finally {
       setGuardando(false);
     }
@@ -84,11 +76,11 @@ export default function GestionCategorias({ sesion, mostrarNotificacion }) {
       const res = await authFetch(`/api/v1/categorias/${categoria.id_categoria}`, sesion, {
         method: 'DELETE',
       });
-      await leerRespuesta(res);
+      await leerRespuestaApi(res, 'No se pudo eliminar la categoría.');
       mostrarNotificacion('Categoría eliminada.');
       await cargarCategorias();
     } catch (err) {
-      mostrarNotificacion(err.message || 'No se pudo eliminar la categoría.', 'error');
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo eliminar la categoría.'), 'error');
     }
   };
 

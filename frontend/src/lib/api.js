@@ -7,26 +7,103 @@ import {
 } from '../auth.js';
 
 export const API_URL = 'http://localhost:8000';
+export const MENSAJE_ERROR_RED = 'No se pudo conectar con el servidor. Verifica tu conexión y que el backend esté encendido.';
+export const MENSAJE_ERROR_GENERAL = 'No se pudo completar la operación.';
+
+export class ApiError extends Error {
+  constructor(message, { status = null, detail = null, code = null } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.detail = detail;
+    this.code = code;
+  }
+}
 
 export { SESSION_EXPIRED_EVENT, cerrarSesion, guardarSesion, obtenerSesion };
 export const obtenerSesionGuardada = obtenerSesion;
 export const limpiarSesion = cerrarSesion;
+
+export function apiUrl(path) {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_URL}${path}`;
+}
+
+function normalizarDetalle(detalle) {
+  if (!detalle) return '';
+  if (typeof detalle === 'string') return detalle;
+  if (Array.isArray(detalle)) {
+    return detalle
+      .map((item) => item?.msg || item?.message || item?.detail)
+      .filter(Boolean)
+      .join(' ');
+  }
+  if (typeof detalle === 'object') {
+    return detalle.message || detalle.error || detalle.detail || '';
+  }
+  return String(detalle);
+}
+
+function mensajeHttp(status, data, fallback = MENSAJE_ERROR_GENERAL) {
+  const detalle = normalizarDetalle(data?.detail || data?.message || data?.error);
+  if (detalle) return detalle;
+
+  if (status >= 500) {
+    return 'El servidor encontró un problema. Intenta de nuevo en unos minutos.';
+  }
+  if (status === 404) return 'No se encontró el recurso solicitado.';
+  if (status === 403) return 'No tienes permisos para realizar esta acción.';
+  if (status === 401) return 'Tu sesión expiró. Inicia sesión nuevamente.';
+  return fallback;
+}
+
+function normalizarErrorFetch(error) {
+  if (error?.name === 'AbortError') {
+    return new ApiError('La solicitud tardó demasiado y fue cancelada.', { code: 'REQUEST_ABORTED' });
+  }
+  if (error instanceof TypeError) {
+    return new ApiError(MENSAJE_ERROR_RED, { code: 'NETWORK_ERROR' });
+  }
+  return error;
+}
+
+export async function leerRespuestaApi(res, fallback = MENSAJE_ERROR_GENERAL) {
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new ApiError(mensajeHttp(res.status, data, fallback), {
+      status: res.status,
+      detail: data,
+    });
+  }
+  return data;
+}
+
+export function mensajeErrorApi(error, fallback = MENSAJE_ERROR_GENERAL) {
+  if (!error) return fallback;
+  if (error.code === 'NETWORK_ERROR' || error instanceof TypeError) return MENSAJE_ERROR_RED;
+  if (error.name === 'AbortError' || error.code === 'REQUEST_ABORTED') {
+    return 'La solicitud tardó demasiado y fue cancelada.';
+  }
+  return error.message || fallback;
+}
 
 export async function iniciarSesion(email, password) {
   const body = new URLSearchParams();
   body.set('username', email);
   body.set('password', password);
 
-  const res = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.detail || 'No se pudo iniciar sesión');
+  let res;
+  try {
+    res = await fetch(apiUrl('/api/v1/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+  } catch (error) {
+    throw normalizarErrorFetch(error);
   }
+
+  const data = await leerRespuestaApi(res, 'No se pudo iniciar sesión.');
 
   const sesion = crearSesion(data.access_token, {
     id: data.usuario_id,
@@ -46,14 +123,21 @@ export async function apiFetch(path, options = {}, sesion = obtenerSesion()) {
     headers.set('Authorization', `Bearer ${sesion.token}`);
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let res;
+  try {
+    res = await fetch(apiUrl(path), {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    throw normalizarErrorFetch(error);
+  }
 
   if (res.status === 401) {
     cerrarSesion();
-    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
   }
 
   return res;

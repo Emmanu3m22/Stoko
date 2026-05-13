@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { authFetch } from '../lib/api';
+import { authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 import RegistroMerma from './RegistroMerma';
 
 const fmtMoneda = (valor) =>
@@ -10,12 +10,6 @@ const fmtMoneda = (valor) =>
   });
 
 const fmtFechaHora = (fecha) => fecha ? new Date(fecha).toLocaleString('es-MX') : '-';
-
-async function leerMensajeError(res, fallback) {
-  const data = await res.json().catch(() => ({}));
-  if (typeof data.detail === 'string') return data.detail;
-  return fallback;
-}
 
 export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
   const [pestaña, setPestaña] = useState('corte');
@@ -64,11 +58,11 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
       } else if (res.status === 404) {
         setCorteActivo(null);
       } else {
-        throw new Error(await leerMensajeError(res, 'No se pudo obtener el turno activo.'));
+        await leerRespuestaApi(res, 'No se pudo obtener el turno activo.');
       }
     } catch (e) {
       console.error(e);
-      const mensaje = e.message || 'Error de red al cargar el turno activo.';
+      const mensaje = mensajeErrorApi(e, 'No se pudo cargar el turno activo.');
       setErrorCorte(mensaje);
       mostrarNotificacion(mensaje, 'error');
     } finally {
@@ -88,11 +82,11 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         const data = await res.json();
         setHistorialCortes(data);
       } else {
-        throw new Error(await leerMensajeError(res, 'No se pudo cargar el historial de cortes.'));
+        await leerRespuestaApi(res, 'No se pudo cargar el historial de cortes.');
       }
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de red al cargar el historial de cortes.', 'error');
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudo cargar el historial de cortes.'), 'error');
     }
   }, [esAdministrador, sesion, mostrarNotificacion]);
 
@@ -114,15 +108,12 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         `/api/v1/reportes/ventas?fecha_inicio=${insightsFechaInicio}&fecha_fin=${insightsFechaFin}`,
         sesion
       );
-      if (!res.ok) {
-        throw new Error(await leerMensajeError(res, 'No se pudo obtener el reporte del periodo.'));
-      }
-      const data = await res.json();
+      const data = await leerRespuestaApi(res, 'No se pudo obtener el reporte del periodo.');
       setReporteVentas(data);
       mostrarNotificacion('Reporte generado exitosamente', 'success');
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de red al obtener el reporte.', 'error');
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudo obtener el reporte.'), 'error');
     } finally {
       setCargandoReporte(false);
     }
@@ -144,16 +135,13 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
           fecha_fin:    insightsFechaFin,
         }),
       });
-      if (!res.ok) {
-        throw new Error(await leerMensajeError(res, 'No se pudieron generar insights con IA.'));
-      }
-      const data = await res.json();
+      const data = await leerRespuestaApi(res, 'No se pudieron generar insights con IA.');
       setInsightsTexto(data.insights);
       mostrarNotificacion('Insights generados con IA', 'success');
       setTimeout(() => insightsRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de red con el servicio de IA.', 'error');
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudieron generar insights.'), 'error');
     } finally {
       setCargandoInsights(false);
     }
@@ -172,11 +160,11 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         const data = await res.json();
         setAuditorias(data);
       } else {
-        throw new Error(await leerMensajeError(res, 'No se pudo cargar el historial de auditoría.'));
+        await leerRespuestaApi(res, 'No se pudo cargar el historial de auditoría.');
       }
     } catch (e) {
       console.error(e);
-      mostrarNotificacion('Error al cargar auditorías', 'error');
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudieron cargar las auditorías.'), 'error');
     } finally {
       setCargandoAuditorias(false);
     }
@@ -203,11 +191,11 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         fetchCorteActivo();
         fetchHistorialCortes();
       } else {
-        throw new Error(await leerMensajeError(res, 'No se pudo abrir el turno.'));
+        await leerRespuestaApi(res, 'No se pudo abrir el turno.');
       }
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de red al abrir turno.', 'error');
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudo abrir el turno.'), 'error');
     }
   };
 
@@ -236,11 +224,11 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
         setEfectivoReal('');
         fetchHistorialCortes();
       } else {
-        throw new Error(await leerMensajeError(res, 'No se pudo cerrar el turno.'));
+        await leerRespuestaApi(res, 'No se pudo cerrar el turno.');
       }
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de red al cerrar turno.', 'error');
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudo cerrar el turno.'), 'error');
     }
   };
 
@@ -262,7 +250,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
       });
       const res = await authFetch(`/api/v1/reportes/exportar?${params.toString()}`, sesion);
       if (!res.ok) {
-        throw new Error(await leerMensajeError(res, 'No se pudo generar el archivo de reporte.'));
+        await leerRespuestaApi(res, 'No se pudo generar el archivo de reporte.');
       }
       
       const blob = await res.blob();
@@ -277,7 +265,7 @@ export default function ReportesAuditorias({ mostrarNotificacion, sesion }) {
       mostrarNotificacion(`Reporte en ${formato.toUpperCase()} descargado exitosamente`, 'success');
     } catch (e) {
       console.error(e);
-      mostrarNotificacion(e.message || 'Error de red al descargar el reporte.', 'error');
+      mostrarNotificacion(mensajeErrorApi(e, 'No se pudo descargar el reporte.'), 'error');
     } finally {
       setDescargando(false);
     }

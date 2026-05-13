@@ -1,4 +1,4 @@
-import { apiFetch } from './api.js';
+import { apiFetch, leerRespuestaApi, mensajeErrorApi } from './api.js';
 
 export const VENTAS_OFFLINE_EVENT = 'stoko:ventas-offline-actualizadas';
 
@@ -205,10 +205,7 @@ export async function sincronizarVentasPendientes(sesion, { onVentaSincronizada 
         body: JSON.stringify(venta.payload),
       }, sesion);
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.detail || 'No se pudo sincronizar la venta pendiente.');
-      }
+      const data = await leerRespuestaApi(res, 'No se pudo sincronizar la venta pendiente.');
 
       await eliminarVentaPendiente(venta.id);
       resumen.sincronizadas += 1;
@@ -218,10 +215,10 @@ export async function sincronizarVentasPendientes(sesion, { onVentaSincronizada 
       resumen.errores += 1;
       await actualizarVentaPendiente(venta.id, {
         estado: 'pendiente',
-        ultimoError: err.message || 'Error de sincronización',
+        ultimoError: mensajeErrorApi(err, 'Error de sincronización'),
       });
 
-      if ((typeof navigator !== 'undefined' && !navigator.onLine) || err instanceof TypeError) {
+      if ((typeof navigator !== 'undefined' && !navigator.onLine) || err.code === 'NETWORK_ERROR' || err instanceof TypeError) {
         break;
       }
     }
