@@ -1,111 +1,256 @@
-import { test, expect } from '@playwright/test';
+// ============================================================
+// CP-CU01 — Gestión de Productos
+// Módulo  : Gestión del Catálogo e Inventario
+// Tipo    : Funcional
+// Autor   : Equipo QA — STOKO
+// Fecha   : 15/03/2026
+// ============================================================
+// Objetivo: Validar que el administrador pueda registrar,
+//           modificar y eliminar productos, asegurando la
+//           sincronización de stock y la generación de alertas.
+// Precondiciones:
+//   1. El administrador debe haber iniciado sesión.
+//   2. El sistema debe encontrarse disponible.
+// ============================================================
 
-test.describe('RF01 - Gestión de Productos (Catálogo e Inventario)', () => {
+import { test, expect, type Page } from '@playwright/test';
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+// ── Configuración global ──────────────────────────────────────────────────────
+const BASE_URL = 'http://localhost:8000';
+const ADMIN_EMAIL = 'admin@stoko.com';
+const ADMIN_PASSWORD = 'admin1234';
 
-    // Iniciar sesión
-    const inputEmail = page.locator('#email');
-    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-    
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('admin@stoko.com');
-      await page.locator('#password').fill('admin1234');
-      await page.locator('#btn-iniciar-sesion').click();
+// Datos del producto de prueba (código único para evitar colisiones)
+const PRODUCTO_PRUEBA = {
+  nombre: `Reloj Test CP01 ${Date.now()}`,
+  precio: '500',
+  stock: '20',
+  stockMinimo: '5',
+  codigo: `CP01-${Date.now()}`,
+};
 
-      // Esperar a que la navegación de inicio de sesión termine y cargue el Hub
-      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
-      // Esperar a que el texto del Dashboard esté visible
-      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 });
-    }
+interface DatosProducto {
+  nombre: string;
+  precio: string;
+  stock: string;
+  stockMinimo: string;
+  codigo: string;
+}
 
-    // Acceder al módulo de Catálogo (que contiene Productos)
-    const menuCatalogo = page.getByRole('button', { name: 'Catálogo' }).first();
-    if (await menuCatalogo.isVisible()) {
-      await menuCatalogo.click();
-    }
-  });
+// ── Helper: iniciar sesión como administrador ─────────────────────────────────
+async function iniciarSesionAdmin(page: Page) {
+  await page.goto(BASE_URL);
 
-  test('CP-01-01: Registrar y modificar producto exitosamente', async ({ page }) => {
-    // Asegurarse de estar en la pestaña de Productos
-    await page.locator('text=Productos').first().click();
+  // Esperar que la pantalla de login esté lista
+  await page.waitForSelector('#btn-iniciar-sesion', { timeout: 10_000 });
 
-    // 1. Registrar producto
-    await page.locator('#btn-nuevo-producto').click();
+  // Rellenar credenciales
+  await page.fill('#email', ADMIN_EMAIL);
+  await page.fill('#password', ADMIN_PASSWORD);
+  await page.click('#btn-iniciar-sesion');
 
-    // Llenar formulario
-    await page.getByPlaceholder('Ej: Electrónica...').or(page.getByText('Nombre del producto').locator('..').locator('input')).fill('Producto de Prueba Playwright');
-    await page.getByText('Precio ($)').locator('..').locator('input').fill('150.50');
-    await page.getByText('Stock Actual').locator('..').locator('input').fill('20');
-    await page.getByText('Stock Mínimo').locator('..').locator('input').fill('5');
-    await page.getByText('Código de barras').locator('..').locator('input').fill('1234567890123');
+  // Esperar a que el hub principal cargue (sidebar visible)
+  await page.waitForSelector('text=STOKO', { timeout: 10_000 });
+}
 
-    // Seleccionar categoría
-    const selectCategoria = page.locator('.fixed.inset-0 select, .bg-white.rounded-3xl select').first();
-    await selectCategoria.selectOption({ index: 1 }).catch(() => {});
-    
-    // Guardar
-    await page.getByRole('button', { name: 'Guardar' }).click();
+// ── Helper: navegar al módulo Catálogo ───────────────────────────────────────
+async function irAlCatalogo(page: Page) {
+  // El sidebar tiene un botón con el label "Catálogo"
+  await page.click('button:has-text("Catálogo")');
 
-    // Validar que se muestra en el inventario
-    await expect(page.locator('text=Producto de Prueba Playwright').first()).toBeVisible();
+  // Verificar que la vista de Catálogo está activa
+  await page.waitForSelector('#btn-nuevo-producto', { timeout: 8_000 });
+}
 
-    // 2. Modificar producto
-    // Hacer clic en el botón de editar del producto recién creado
-    const productoFila = page.locator('tr', { hasText: 'Producto de Prueba Playwright' });
-    // Seleccionar el botón de editar basado en las clases o el SVG
-    const botonEditar = productoFila.locator('button').nth(0);
-    await botonEditar.click();
+// ── Helper: abrir modal de nuevo producto ────────────────────────────────────
+async function abrirModalNuevoProducto(page: Page) {
+  await page.click('#btn-nuevo-producto');
 
-    // Modificar precio
-    await page.getByText('Precio ($)').locator('..').locator('input').fill('180.00');
-    await page.getByRole('button', { name: 'Actualizar' }).click();
+  // El modal tiene el encabezado "Añadir Producto"
+  await page.waitForSelector('text=Añadir Producto', { timeout: 5_000 });
+}
 
-    // Validar el cambio
-    await expect(productoFila).toContainText(/180/);
-  });
+// ── Helper: rellenar el formulario del producto ───────────────────────────────
+async function rellenarFormularioProducto(page: Page, datos: DatosProducto) {
+  // Campo Nombre
+  const inputNombre = page.locator('input[placeholder*="Nombre"]').last();
+  await inputNombre.fill(datos.nombre);
 
-  test('CP-01-02: Ajuste de stock refleja sincronización en tiempo real', async ({ page }) => {
-    await page.locator('text=Productos').first().click();
+  // Campo Precio
+  const inputPrecio = page.locator('input[type="number"]').first();
+  await inputPrecio.fill(datos.precio);
 
-    // Buscar un producto existente para editar su stock
-    const fila = page.locator('tbody tr').first();
-    const nombreProducto = await fila.locator('td p.font-bold').first().innerText();
+  // Campo Stock Actual (segundo input numérico)
+  const inputStock = page.locator('input[type="number"]').nth(1);
+  await inputStock.fill(datos.stock);
 
-    // Editar
-    await fila.locator('button').first().click();
+  // Campo Stock Mínimo (tercer input numérico)
+  const inputStockMin = page.locator('input[type="number"]').nth(2);
+  await inputStockMin.fill(datos.stockMinimo);
 
-    // Cambiar stock actual a un valor diferente
-    await page.getByText('Stock Actual').locator('..').locator('input').fill('500');
-    await page.getByRole('button', { name: 'Actualizar' }).click();
+  // Campo Código de barras (cuarto input numérico es el código —
+  // en realidad es type="text"; se toma el último input de texto)
+  const inputCodigo = page.locator('input[type="text"]').last();
+  await inputCodigo.fill(datos.codigo);
 
-    // Validar que se actualizó en la tabla
-    const filaActualizada = page.locator('tr', { hasText: nombreProducto }).first();
-    await expect(filaActualizada.locator('text=500').first()).toBeVisible();
-  });
+  // Seleccionar la primera categoría disponible en el <select>
+  const select = page.locator('select').last();
+  const primeraOpcion = select.locator('option:not([value=""])').first();
+  const valorOpcion = await primeraOpcion.getAttribute('value');
+  await select.selectOption(valorOpcion);
+}
 
-  test('CP-01-03: Reducir cantidad por debajo del límite genera alerta', async ({ page }) => {
-    await page.locator('text=Productos').first().click();
+// ─────────────────────────────────────────────────────────────────────────────
+//  CP-01-01
+//  Registrar y modificar un producto con datos válidos
+// ─────────────────────────────────────────────────────────────────────────────
+test('CP-01-01 | Registrar producto con datos válidos y verificar en inventario', async ({ page }) => {
+  // ── Arrange ────────────────────────────────────────────────────────────────
+  await iniciarSesionAdmin(page);
+  await irAlCatalogo(page);
 
-    // Editar producto
-    const fila = page.locator('tbody tr').first();
-    const nombreProducto = await fila.locator('td p.font-bold').first().innerText();
+  // ── Act: Crear producto ────────────────────────────────────────────────────
+  await abrirModalNuevoProducto(page);
+  await rellenarFormularioProducto(page, PRODUCTO_PRUEBA);
 
-    await fila.locator('button').first().click();
+  // Guardar
+  await page.click('button:has-text("Guardar")');
 
-    // Ajustar stock mínimo y stock actual para forzar la alerta
-    await page.getByText('Stock Mínimo').locator('..').locator('input').fill('10');
-    await page.getByText('Stock Actual').locator('..').locator('input').fill('2'); // Menor al mínimo
-    await page.getByRole('button', { name: 'Actualizar' }).click();
+  // ── Assert: producto aparece en la tabla de inventario ────────────────────
+  // El toast de éxito debe mostrar el nombre del producto
+  await expect(
+    page.locator(`text=${PRODUCTO_PRUEBA.nombre}`)
+  ).toBeVisible({ timeout: 8_000 });
 
-    // Validar la alerta visual en la tabla (color ambar o punto intermitente)
-    const filaBaja = page.locator('tr', { hasText: nombreProducto }).first();
-    const iconoAlerta = filaBaja.locator('.bg-amber-500.animate-pulse'); // Según el frontend
-    await expect(iconoAlerta).toBeVisible();
+  // El producto debe aparecer en la tabla
+  const fila = page.locator(`tr:has-text("${PRODUCTO_PRUEBA.nombre}")`);
+  await expect(fila).toBeVisible({ timeout: 8_000 });
 
-    // Validar filtrado de stock bajo
-    await page.getByLabel('Solo stock bajo').check();
-    await expect(page.locator('tr', { hasText: nombreProducto }).first()).toBeVisible();
-  });
+  // ── Act: Modificar producto ───────────────────────────────────────────────
+  // Hacer clic en el botón de editar (ícono lápiz) de la fila del producto
+  await fila.locator('button').first().click();
+
+  // Esperar modal de edición
+  await page.waitForSelector('text=Editar Producto', { timeout: 5_000 });
+
+  // Actualizar el precio
+  const inputPrecioEdicion = page.locator('input[type="number"]').first();
+  await inputPrecioEdicion.fill('750');
+
+  // Guardar cambios
+  await page.click('button:has-text("Actualizar")');
+
+  // ── Assert: el producto actualizado sigue visible en el inventario ────────
+  const filaActualizada = page.locator(`tr:has-text("${PRODUCTO_PRUEBA.nombre}")`);
+  await expect(filaActualizada).toBeVisible({ timeout: 8_000 });
+
+  // Verificar que el precio actualizado ($750.00) aparece en la fila
+  await expect(filaActualizada).toContainText('750', { timeout: 5_000 });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CP-01-02
+//  Sincronización de stock tras ajuste de inventario
+// ─────────────────────────────────────────────────────────────────────────────
+test('CP-01-02 | La cantidad disponible se actualiza en tiempo real al ajustar el stock', async ({ page }) => {
+  // ── Arrange ────────────────────────────────────────────────────────────────
+  await iniciarSesionAdmin(page);
+  await irAlCatalogo(page);
+
+  // Crear un producto base con stock conocido (30 unidades)
+  const productoSync = {
+    ...PRODUCTO_PRUEBA,
+    nombre: `Sync Test CP01 ${Date.now()}`,
+    stock: '30',
+    codigo: `SYNC-${Date.now()}`,
+  };
+
+  await abrirModalNuevoProducto(page);
+  await rellenarFormularioProducto(page, productoSync);
+  await page.click('button:has-text("Guardar")');
+
+  // Esperar a que el producto aparezca
+  const fila = page.locator(`tr:has-text("${productoSync.nombre}")`);
+  await expect(fila).toBeVisible({ timeout: 8_000 });
+
+  // Obtener el stock actual mostrado antes de la edición
+  const stockAntes = await fila.locator('td').nth(3).innerText();
+
+  // ── Act: Ajustar el stock editando el producto ────────────────────────────
+  await fila.locator('button').first().click();
+  await page.waitForSelector('text=Editar Producto', { timeout: 5_000 });
+
+  const nuevoStock = '15';
+  const inputStockEdicion = page.locator('input[type="number"]').nth(1);
+  await inputStockEdicion.fill(nuevoStock);
+  await page.click('button:has-text("Actualizar")');
+
+  // ── Assert: el stock se actualiza en la tabla sin recargar la página ──────
+  const filaActualizada = page.locator(`tr:has-text("${productoSync.nombre}")`);
+  await expect(filaActualizada).toBeVisible({ timeout: 8_000 });
+
+  // La celda de stock debe mostrar el valor actualizado (15)
+  const stockDespues = await filaActualizada.locator('td').nth(3).innerText();
+  expect(stockDespues.trim()).toContain('15');
+
+  // El valor anterior (30) ya no debe estar en esa fila
+  expect(stockDespues.trim()).not.toContain('30');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CP-01-03
+//  Alerta de stock bajo al reducir existencias al umbral mínimo
+// ─────────────────────────────────────────────────────────────────────────────
+test('CP-01-03 | El sistema muestra alerta de stock bajo al administrador', async ({ page }) => {
+  // ── Arrange ────────────────────────────────────────────────────────────────
+  await iniciarSesionAdmin(page);
+  await irAlCatalogo(page);
+
+  // Crear un producto cuyo stock_actual esté JUSTO ENCIMA del mínimo (20 > 10)
+  const productoAlerta = {
+    ...PRODUCTO_PRUEBA,
+    nombre: `Alerta Stock CP01 ${Date.now()}`,
+    stock: '20',
+    stockMinimo: '10',
+    codigo: `ALERT-${Date.now()}`,
+  };
+
+  await abrirModalNuevoProducto(page);
+  await rellenarFormularioProducto(page, productoAlerta);
+  await page.click('button:has-text("Guardar")');
+
+  const fila = page.locator(`tr:has-text("${productoAlerta.nombre}")`);
+  await expect(fila).toBeVisible({ timeout: 8_000 });
+
+  // ── Act: Reducir el stock por DEBAJO del mínimo (9 < 10) ─────────────────
+  await fila.locator('button').first().click();
+  await page.waitForSelector('text=Editar Producto', { timeout: 5_000 });
+
+  // Stock mínimo permanece en 10; bajamos el actual a 9
+  const inputStockEdicion = page.locator('input[type="number"]').nth(1);
+  await inputStockEdicion.fill('9');
+  await page.click('button:has-text("Actualizar")');
+
+  // ── Assert 1: indicador visual en la tabla (punto ámbar parpadeante) ──────
+  const filaActualizada = page.locator(`tr:has-text("${productoAlerta.nombre}")`);
+  await expect(filaActualizada).toBeVisible({ timeout: 8_000 });
+
+  // El indicador de stock bajo es un <span> con clase animate-pulse
+  const indicadorBajo = filaActualizada.locator('span.animate-pulse');
+  await expect(indicadorBajo).toBeVisible({ timeout: 5_000 });
+
+  // ── Assert 2: la alerta aparece en el Dashboard ───────────────────────────
+  // Navegar al Dashboard
+  await page.click('button:has-text("Dashboard")');
+  await page.waitForSelector('text=Alerta de inventario', { timeout: 8_000 });
+
+  // El banner de alerta debe ser visible
+  const bannerAlerta = page.locator('text=Alerta de inventario');
+  await expect(bannerAlerta).toBeVisible();
+
+  // El producto con stock bajo debe aparecer en la tabla del dashboard
+  const filaEnDashboard = page.locator(
+    `.bg-white >> tr:has-text("${productoAlerta.nombre}")`
+  );
+  await expect(filaEnDashboard).toBeVisible({ timeout: 5_000 });
 });
