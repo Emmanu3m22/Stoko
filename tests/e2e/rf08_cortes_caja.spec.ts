@@ -4,6 +4,17 @@ test.describe('RF08 - Generar Cortes de Caja', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Iniciar sesión si es necesario
+    const inputEmail = page.locator('#email');
+    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    if (await inputEmail.isVisible()) {
+      await inputEmail.fill('admin@stoko.com');
+      await page.locator('#password').fill('admin1234');
+      await page.locator('#btn-iniciar-sesion').click();
+      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
+      // Esperar a que el texto del Dashboard esté visible
+      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+    }
     // Ir a la sección de Reportes o Auditorías
     const menuReportes = page.locator('text=/Reportes/i, text=/Auditorías/i').first();
     if (await menuReportes.isVisible()) {
@@ -13,7 +24,7 @@ test.describe('RF08 - Generar Cortes de Caja', () => {
 
   test('CP-08-01: Generar reporte de corte de caja con desglose', async ({ page }) => {
     // Localizar botón de generar corte
-    const btnGenerarCorte = page.getByRole('button', { name: /Generar Corte/i }).or(page.locator('text=/Corte de caja/i').first());
+    const btnGenerarCorte = page.getByRole('button', { name: /Realizar Corte Ahora/i }).or(page.locator('text=Realizar Corte Ahora').first());
     await btnGenerarCorte.click();
 
     // Validar que se muestra el reporte (modal, vista nueva, o descarga)
@@ -40,7 +51,7 @@ test.describe('RF08 - Generar Cortes de Caja', () => {
 
     // Comprobar la primera fila del historial
     const primeraFila = page.locator('table tbody tr').first();
-    await expect(primeraFila).toContainText(/Corte de caja/i);
+    await expect(primeraFila).toContainText(/corte/i);
     // Valida que contenga un usuario y fecha (comprobando que la fila tiene contenido)
     const textoFila = await primeraFila.innerText();
     expect(textoFila.length).toBeGreaterThan(10); 

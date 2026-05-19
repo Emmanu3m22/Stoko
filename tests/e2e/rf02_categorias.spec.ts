@@ -5,7 +5,17 @@ test.describe('RF02 - Organización por categorías', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     
-    const menuInventario = page.locator('text=Inventario').first();
+    // Iniciar sesión
+    const inputEmail = page.locator('#email').first();
+    if (await inputEmail.isVisible()) {
+      await inputEmail.fill('admin@stoko.com');
+      const inputPass = page.locator('#password').first();
+      await inputPass.fill('admin1234');
+      await page.locator('#btn-iniciar-sesion').click();
+      await page.waitForTimeout(1000);
+    }
+    
+    const menuInventario = page.locator('text=Catálogo').first();
     if (await menuInventario.isVisible()) {
       await menuInventario.click();
     }

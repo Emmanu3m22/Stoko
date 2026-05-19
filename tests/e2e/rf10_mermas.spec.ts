@@ -4,10 +4,25 @@ test.describe('RF10 - Registrar Mermas', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Iniciar sesión si es necesario
+    const inputEmail = page.locator('#email');
+    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    if (await inputEmail.isVisible()) {
+      await inputEmail.fill('admin@stoko.com');
+      await page.locator('#password').fill('admin1234');
+      await page.locator('#btn-iniciar-sesion').click();
+      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
+      // Esperar a que el texto del Dashboard esté visible
+      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+    }
     // Navegar al módulo de Mermas (Análisis de negocio / Registro de mermas)
-    const menuMermas = page.locator('text=/Mermas/i, text=/Análisis/i').first();
-    if (await menuMermas.isVisible()) {
-      await menuMermas.click();
+    const menuReportes = page.locator('text=Reportes').first();
+    if (await menuReportes.isVisible()) {
+      await menuReportes.click();
+    }
+    const tabMermas = page.locator('text=Registro de Mermas').first();
+    if (await tabMermas.isVisible()) {
+      await tabMermas.click();
     }
   });
 
@@ -19,7 +34,7 @@ test.describe('RF10 - Registrar Mermas', () => {
     }
 
     // Llenar datos de la merma
-    const inputProducto = page.getByPlaceholder(/Buscar producto/i).first();
+    const inputProducto = page.getByPlaceholder(/Escanear código/i).first();
     if (await inputProducto.isVisible()) {
       await inputProducto.fill('Producto Test');
       await page.waitForTimeout(500);

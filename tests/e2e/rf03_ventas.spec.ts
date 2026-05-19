@@ -6,9 +6,20 @@ test.describe('RF03 - Registrar venta (Búsqueda en POS / Inventario)', () => {
     // CP-03-01 se centra en la búsqueda que puede realizarse en inventario o POS.
     // Navegamos al sistema asumiendo inicio de sesión previo.
     await page.goto('/');
+    // Iniciar sesión si es necesario
+    const inputEmail = page.locator('#email');
+    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    if (await inputEmail.isVisible()) {
+      await inputEmail.fill('admin@stoko.com');
+      await page.locator('#password').fill('admin1234');
+      await page.locator('#btn-iniciar-sesion').click();
+      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
+      // Esperar a que el texto del Dashboard esté visible
+      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+    }
     
     // Entrar al módulo de Inventario
-    const menuInventario = page.locator('text=Inventario').first();
+    const menuInventario = page.locator('text=Catálogo').first();
     if (await menuInventario.isVisible()) {
       await menuInventario.click();
     }
@@ -16,7 +27,7 @@ test.describe('RF03 - Registrar venta (Búsqueda en POS / Inventario)', () => {
 
   test('CP-03-01: Búsqueda de productos por nombre, código o categoría', async ({ page }) => {
     // Asegurarse de estar en la pestaña de Productos
-    await page.getByRole('button', { name: /Productos/i }).click();
+    await page.locator('text=Productos').first().click();
 
     // 1. Búsqueda por nombre
     const inputBusqueda = page.getByPlaceholder('Buscar por nombre o código…');

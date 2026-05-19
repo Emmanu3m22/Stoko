@@ -14,28 +14,28 @@ test.describe('RF13 - Iniciar Sesión', () => {
     // Asumiremos que la pantalla de inicio presenta el login si no hay sesión.
     
     // Si vemos el campo de correo, procedemos
-    const inputEmail = page.locator('input[type="email"], input[placeholder*="correo"]').first();
+    const inputEmail = page.locator('#email').first();
     if (await inputEmail.isVisible()) {
       await inputEmail.fill('admin@stoko.com'); // Correo válido del sistema
-      const inputPass = page.locator('input[type="password"]').first();
+      const inputPass = page.locator('#password').first();
       await inputPass.fill('admin123'); // Contraseña válida
       
-      const btnIngresar = page.getByRole('button', { name: /Ingresar/i, exact: false }).first();
+      const btnIngresar = page.locator('#btn-iniciar-sesion');
       await btnIngresar.click();
 
       // Validar que redirige al panel principal (Dashboard, Inventario, Hub)
-      await expect(page.locator('text=/Panel Principal/i, text=/Dashboard/i, text=/Inventario/i').first()).toBeVisible();
+      await expect(page.locator('text=/Panel Principal/i, text=/Dashboard/i, text=/Catálogo/i').first()).toBeVisible();
     }
   });
 
   test('CP-13-02: Denegar acceso por contraseña incorrecta', async ({ page }) => {
-    const inputEmail = page.locator('input[type="email"], input[placeholder*="correo"]').first();
+    const inputEmail = page.locator('#email').first();
     if (await inputEmail.isVisible()) {
       await inputEmail.fill('admin@stoko.com'); // Correo válido
-      const inputPass = page.locator('input[type="password"]').first();
+      const inputPass = page.locator('#password').first();
       await inputPass.fill('ContraseñaIncorrecta99'); // Contraseña inválida
       
-      const btnIngresar = page.getByRole('button', { name: /Ingresar/i, exact: false }).first();
+      const btnIngresar = page.locator('#btn-iniciar-sesion');
       await btnIngresar.click();
 
       // Validar mensaje de error específico
@@ -44,13 +44,13 @@ test.describe('RF13 - Iniciar Sesión', () => {
   });
 
   test('CP-13-03: Denegar acceso por usuario no registrado', async ({ page }) => {
-    const inputEmail = page.locator('input[type="email"], input[placeholder*="correo"]').first();
+    const inputEmail = page.locator('#email').first();
     if (await inputEmail.isVisible()) {
       await inputEmail.fill('usuario_falso_no_existe@stoko.com'); // Correo no registrado
-      const inputPass = page.locator('input[type="password"]').first();
+      const inputPass = page.locator('#password').first();
       await inputPass.fill('CualquierClave123');
       
-      const btnIngresar = page.getByRole('button', { name: /Ingresar/i, exact: false }).first();
+      const btnIngresar = page.locator('#btn-iniciar-sesion');
       await btnIngresar.click();
 
       // Validar mensaje de error específico

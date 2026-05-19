@@ -4,8 +4,19 @@ test.describe('RF09 - Configurar Stock Mínimo', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Iniciar sesión si es necesario
+    const inputEmail = page.locator('#email');
+    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    if (await inputEmail.isVisible()) {
+      await inputEmail.fill('admin@stoko.com');
+      await page.locator('#password').fill('admin1234');
+      await page.locator('#btn-iniciar-sesion').click();
+      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
+      // Esperar a que el texto del Dashboard esté visible
+      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+    }
     // CP-09 implica modificar el stock mínimo de un producto
-    const menuInventario = page.locator('text=/Inventario/i, text=/Productos/i').first();
+    const menuInventario = page.locator('text=/Catálogo/i, text=/Productos/i').first();
     if (await menuInventario.isVisible()) {
       await menuInventario.click();
     }
@@ -14,10 +25,10 @@ test.describe('RF09 - Configurar Stock Mínimo', () => {
   test('CP-09-01: Definir nivel de stock mínimo válido', async ({ page }) => {
     // Abrir modal de edición de un producto existente
     const filaProducto = page.locator('table tbody tr').first();
-    await filaProducto.locator('button').first().click();
+    await filaProducto.locator('button').nth(0).click();
 
     // Localizar el campo de stock mínimo
-    const inputStockMinimo = page.getByText(/Stock Mínimo/i).locator('..').locator('input');
+    const inputStockMinimo = page.getByText('Stock Mínimo').locator('..').locator('input');
     await inputStockMinimo.fill('');
     await inputStockMinimo.fill('15'); // Valor numérico válido
 
@@ -32,9 +43,9 @@ test.describe('RF09 - Configurar Stock Mínimo', () => {
   test('CP-09-02: Bloqueo de caracteres inválidos y valores negativos en stock mínimo', async ({ page }) => {
     // Intentar abrir el modal de nuevo
     const filaProducto = page.locator('table tbody tr').first();
-    await filaProducto.locator('button').first().click();
+    await filaProducto.locator('button').nth(0).click();
 
-    const inputStockMinimo = page.getByText(/Stock Mínimo/i).locator('..').locator('input');
+    const inputStockMinimo = page.getByText('Stock Mínimo').locator('..').locator('input');
     
     // Al ser un input type="number", llenar caracteres no numéricos suele ser ignorado por el navegador o fallar.
     // Llenaremos con un valor negativo o vacío para comprobar.

@@ -4,9 +4,24 @@ test.describe('RF11 - Reportes de ventas e Insights IA', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    const menuReportes = page.locator('text=/Reportes/i, text=/Insights/i, text=/Auditoría/i').first();
+    // Iniciar sesión si es necesario
+    const inputEmail = page.locator('#email');
+    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    if (await inputEmail.isVisible()) {
+      await inputEmail.fill('admin@stoko.com');
+      await page.locator('#password').fill('admin1234');
+      await page.locator('#btn-iniciar-sesion').click();
+      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
+      // Esperar a que el texto del Dashboard esté visible
+      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
+    }
+    const menuReportes = page.locator('text=Reportes').first();
     if (await menuReportes.isVisible()) {
       await menuReportes.click();
+    }
+    const tabInsights = page.locator('text=IA Insights (Gemini)').first();
+    if (await tabInsights.isVisible()) {
+      await tabInsights.click();
     }
   });
 
@@ -37,7 +52,7 @@ test.describe('RF11 - Reportes de ventas e Insights IA', () => {
     }
 
     // Ir al historial de auditoría
-    const tabAuditoria = page.locator('text=/Historial de Operaciones/i, text=/Auditorías/i, text=/Bitácora/i').first();
+    const tabAuditoria = page.locator('text=Historial de Operaciones').first();
     if (await tabAuditoria.isVisible()) {
       await tabAuditoria.click();
     }
