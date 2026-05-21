@@ -428,7 +428,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
                 <input required type="email" value={usuarioEditando.email} onChange={(e) => setUsuarioEditando({...usuarioEditando, email: e.target.value})} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 outline-none text-sm" />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Contraseña (opcional)</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Cambiar contraseña</label>
                 <input type="password" value={usuarioEditando.password} onChange={(e) => setUsuarioEditando({...usuarioEditando, password: e.target.value})} placeholder="Dejar en blanco para no cambiar" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 outline-none text-sm" />
                 {errorEdicion && <p className="text-red-500 text-xs font-semibold mt-1">{errorEdicion}</p>}
               </div>
