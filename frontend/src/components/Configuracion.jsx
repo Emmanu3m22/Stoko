@@ -552,9 +552,6 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
               Configuración local
             </p>
             <h2 className="text-xl font-bold text-gray-900">Gemini IA</h2>
-            <p className="text-sm text-gray-500 mt-2">
-              La API key se guarda en esta instalación local y no se incluye en el código.
-            </p>
           </div>
 
           {cargandoIA ? (
