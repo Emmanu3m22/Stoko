@@ -270,3 +270,20 @@ class LogAuditoria(Base):
 
     def __repr__(self):
         return f"<LogAuditoria(id={self.id_auditoria}, op='{self.operacion}')>"
+
+
+# CONFIGURACIÓN LOCAL
+
+class ConfiguracionSistema(Base):
+    """
+    Configuración local de la instalación.
+    Pensada para datos de la app de escritorio, como proveedor/modelo de IA.
+    """
+    __tablename__ = "configuracion_sistema"
+
+    clave = Column(String(100), primary_key=True, index=True)
+    valor = Column(Text, nullable=True)
+    actualizado_en = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<ConfiguracionSistema(clave='{self.clave}')>"

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.core.deps import require_admin
 from app.database import get_db
+from app.services.configuracion_service import obtener_configuracion_ia
 from app.services.ia_service import IAServiceError, generar_insights
 from app.services import exportacion_service
 
@@ -197,9 +198,15 @@ def generar_reporte_insights(
     Generar recomendaciones estratégicas con IA a partir de ventas y mermas.
     """
     datos_ventas, datos_mermas = obtener_datos_periodo(db, datos.fecha_inicio, datos.fecha_fin)
+    config_ia = obtener_configuracion_ia(db)
 
     try:
-        insights = generar_insights(datos_ventas, datos_mermas)
+        insights = generar_insights(
+            datos_ventas,
+            datos_mermas,
+            api_key=config_ia.api_key,
+            model=config_ia.modelo,
+        )
     except IAServiceError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -65,17 +65,23 @@ Evita mencionar que eres un modelo de IA. No inventes cifras fuera de los datos.
 """.strip()
 
 
-def generar_insights(datos_ventas: dict[str, Any], datos_mermas: dict[str, Any]) -> str:
+def generar_insights(
+    datos_ventas: dict[str, Any],
+    datos_mermas: dict[str, Any],
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+) -> str:
     """
     Genera recomendaciones usando Gemini.
 
     Lanza IAServiceError si falta configuración, dependencia o falla el proveedor.
     """
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = api_key or os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise IAServiceError("GEMINI_API_KEY no está configurada")
 
-    model = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+    model = model or os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
     prompt = _construir_prompt(datos_ventas, datos_mermas)
 
     try:

@@ -248,6 +248,25 @@ class InsightsResponse(BaseModel):
     insights:     str
 
 
+# CONFIGURACIÓN LOCAL
+
+class ConfiguracionIAResponse(BaseModel):
+    modelo: str
+    api_key_configurada: bool
+    api_key_preview: Optional[str] = None
+
+
+class ConfiguracionIAUpdate(BaseModel):
+    modelo: Optional[str] = Field(None, min_length=1, max_length=100)
+    api_key: Optional[str] = Field(None, max_length=500)
+
+
+class PruebaIAResponse(BaseModel):
+    ok: bool
+    modelo: str
+    mensaje: str
+
+
 # RESPUESTA GENÉRICA
 
 class MensajeResponse(BaseModel):

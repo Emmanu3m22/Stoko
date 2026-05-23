@@ -21,6 +21,13 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
   const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [usuarioEnAccion, setUsuarioEnAccion] = useState(null);
+  const [configIA, setConfigIA] = useState(null);
+  const [modeloIA, setModeloIA] = useState('gemini-3-flash-preview');
+  const [apiKeyIA, setApiKeyIA] = useState('');
+  const [cargandoIA, setCargandoIA] = useState(false);
+  const [guardandoIA, setGuardandoIA] = useState(false);
+  const [probandoIA, setProbandoIA] = useState(false);
+  const [mensajeIA, setMensajeIA] = useState(null);
 
   // Estados para el formulario
   const [nuevoNombre, setNuevoNombre] = useState('');
@@ -70,13 +77,34 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
     }
   }, [sesion, esAdministrador, mostrarNotificacion]);
 
+  const cargarConfigIA = useCallback(async () => {
+    if (!esAdministrador) return;
+    setCargandoIA(true);
+    setMensajeIA(null);
+    try {
+      const res = await authFetch('/api/v1/configuracion/ia', sesion);
+      const data = await leerRespuestaApi(res, 'No se pudo cargar la configuración de IA.');
+      setConfigIA(data);
+      setModeloIA(data.modelo || 'gemini-3-flash-preview');
+      setApiKeyIA('');
+    } catch (err) {
+      const mensaje = mensajeErrorApi(err, 'No se pudo cargar la configuración de IA.');
+      setMensajeIA({ tipo: 'error', texto: mensaje });
+      mostrarNotificacion(mensaje, 'error');
+    } finally {
+      setCargandoIA(false);
+    }
+  }, [sesion, esAdministrador, mostrarNotificacion]);
+
   useEffect(() => {
     if (pestaña === 'usuarios') {
       cargarUsuarios();
     } else if (pestaña === 'perfil') {
       cargarPerfil();
+    } else if (pestaña === 'ia') {
+      cargarConfigIA();
     }
-  }, [pestaña, cargarUsuarios, cargarPerfil]);
+  }, [pestaña, cargarUsuarios, cargarPerfil, cargarConfigIA]);
 
   const agregarUsuario = async (e) => {
     e.preventDefault();
@@ -212,6 +240,74 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
     }
   };
 
+  const guardarConfigIA = async (e) => {
+    e.preventDefault();
+    setGuardandoIA(true);
+    setMensajeIA(null);
+    try {
+      const payload = { modelo: modeloIA.trim() || 'gemini-3-flash-preview' };
+      if (apiKeyIA.trim()) {
+        payload.api_key = apiKeyIA.trim();
+      }
+      const res = await authFetch('/api/v1/configuracion/ia', sesion, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      const data = await leerRespuestaApi(res, 'No se pudo guardar la configuración de IA.');
+      setConfigIA(data);
+      setModeloIA(data.modelo || payload.modelo);
+      setApiKeyIA('');
+      setMensajeIA({ tipo: 'success', texto: 'Configuración de IA guardada correctamente.' });
+      mostrarNotificacion('Configuración de IA guardada correctamente.');
+    } catch (err) {
+      const mensaje = mensajeErrorApi(err, 'No se pudo guardar la configuración de IA.');
+      setMensajeIA({ tipo: 'error', texto: mensaje });
+      mostrarNotificacion(mensaje, 'error');
+    } finally {
+      setGuardandoIA(false);
+    }
+  };
+
+  const borrarApiKeyIA = async () => {
+    if (!window.confirm('¿Borrar la API key guardada para Gemini?')) return;
+    setGuardandoIA(true);
+    setMensajeIA(null);
+    try {
+      const res = await authFetch('/api/v1/configuracion/ia', sesion, {
+        method: 'PUT',
+        body: JSON.stringify({ modelo: modeloIA.trim() || 'gemini-3-flash-preview', api_key: '' }),
+      });
+      const data = await leerRespuestaApi(res, 'No se pudo borrar la API key.');
+      setConfigIA(data);
+      setApiKeyIA('');
+      setMensajeIA({ tipo: 'success', texto: 'API key borrada correctamente.' });
+      mostrarNotificacion('API key borrada correctamente.');
+    } catch (err) {
+      const mensaje = mensajeErrorApi(err, 'No se pudo borrar la API key.');
+      setMensajeIA({ tipo: 'error', texto: mensaje });
+      mostrarNotificacion(mensaje, 'error');
+    } finally {
+      setGuardandoIA(false);
+    }
+  };
+
+  const probarConfigIA = async () => {
+    setProbandoIA(true);
+    setMensajeIA(null);
+    try {
+      const res = await authFetch('/api/v1/configuracion/ia/probar', sesion, { method: 'POST' });
+      const data = await leerRespuestaApi(res, 'No se pudo probar la conexión con Gemini.');
+      setMensajeIA({ tipo: data.ok ? 'success' : 'error', texto: data.mensaje });
+      mostrarNotificacion(data.mensaje, data.ok ? 'success' : 'error');
+    } catch (err) {
+      const mensaje = mensajeErrorApi(err, 'No se pudo probar la conexión con Gemini.');
+      setMensajeIA({ tipo: 'error', texto: mensaje });
+      mostrarNotificacion(mensaje, 'error');
+    } finally {
+      setProbandoIA(false);
+    }
+  };
+
   if (!esAdministrador) {
     return (
       <div className="p-8 w-full min-h-screen font-sans">
@@ -233,17 +329,23 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Configuración del Sistema</h1>
         <div className="flex gap-4 mt-4 border-b border-gray-200 pb-2">
-          <button 
+          <button
             onClick={() => setPestaña('perfil')}
             className={`font-semibold pb-2 ${pestaña === 'perfil' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
           >
             Perfil del Negocio
           </button>
-          <button 
+          <button
             onClick={() => setPestaña('usuarios')}
             className={`font-semibold pb-2 ${pestaña === 'usuarios' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
           >
             Gestión de Usuarios
+          </button>
+          <button
+            onClick={() => setPestaña('ia')}
+            className={`font-semibold pb-2 ${pestaña === 'ia' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+          >
+            Inteligencia Artificial
           </button>
 
         </div>
@@ -409,6 +511,102 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
             </button>
           </form>
         </div>
+      )}
+
+      {pestaña === 'ia' && (
+        <form onSubmit={guardarConfigIA} className="max-w-2xl bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <div className="mb-6">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
+              Configuración local
+            </p>
+            <h2 className="text-xl font-bold text-gray-900">Gemini IA</h2>
+            <p className="text-sm text-gray-500 mt-2">
+              La API key se guarda en esta instalación local y no se incluye en el código.
+            </p>
+          </div>
+
+          {cargandoIA ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">Estado</p>
+                <p className={`text-sm font-bold ${configIA?.api_key_configurada ? 'text-green-700' : 'text-amber-700'}`}>
+                  {configIA?.api_key_configurada
+                    ? `API key configurada (${configIA.api_key_preview})`
+                    : 'Sin API key configurada'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Modelo</label>
+                <input
+                  type="text"
+                  value={modeloIA}
+                  onChange={(e) => setModeloIA(e.target.value)}
+                  placeholder="gemini-3-flash-preview"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">API key de Gemini</label>
+                <input
+                  type="password"
+                  value={apiKeyIA}
+                  onChange={(e) => setApiKeyIA(e.target.value)}
+                  placeholder={configIA?.api_key_configurada ? 'Dejar en blanco para conservar la clave guardada' : 'Pega tu API key de Gemini'}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#4169E1]/40 outline-none text-sm"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Puedes obtenerla desde Google AI Studio. No se mostrará completa después de guardarla.
+                </p>
+              </div>
+
+              {mensajeIA && (
+                <div className={`rounded-xl border px-4 py-3 text-sm font-semibold ${
+                  mensajeIA.tipo === 'success'
+                    ? 'border-green-200 bg-green-50 text-green-700'
+                    : 'border-red-200 bg-red-50 text-red-600'
+                }`}>
+                  {mensajeIA.texto}
+                </div>
+              )}
+
+              <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-gray-100">
+                {configIA?.api_key_configurada && (
+                  <button
+                    type="button"
+                    onClick={borrarApiKeyIA}
+                    disabled={guardandoIA}
+                    className="px-5 py-2 text-red-600 bg-red-50 rounded-xl font-bold hover:bg-red-100 text-sm disabled:opacity-60"
+                  >
+                    Borrar API key
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={probarConfigIA}
+                  disabled={probandoIA || guardandoIA}
+                  className="px-5 py-2 text-[#4169E1] bg-blue-50 rounded-xl font-bold hover:bg-blue-100 text-sm disabled:opacity-60"
+                >
+                  {probandoIA ? 'Probando...' : 'Probar conexión'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoIA}
+                  className="px-5 py-2 bg-[#4169E1] text-white rounded-xl font-bold hover:bg-[#3155c7] text-sm disabled:opacity-60"
+                >
+                  {guardandoIA ? 'Guardando...' : 'Guardar configuración'}
+                </button>
+              </div>
+            </div>
+          )}
+        </form>
       )}
 
 

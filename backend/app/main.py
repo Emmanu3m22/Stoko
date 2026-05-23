@@ -14,7 +14,8 @@ from app import models
 # Importar todos los modelos para que SQLAlchemy los registre
 from app.models import (
     Rol, Usuario, Categoria, Producto,
-    Venta, DetalleVenta, CorteCaja, Incidencia, LogAuditoria
+    Venta, DetalleVenta, CorteCaja, Incidencia, LogAuditoria,
+    ConfiguracionSistema,
 )
 
 # Crear todas las tablas 
@@ -47,7 +48,7 @@ app.add_middleware(
 )
 
 # Registrar routers 
-from app.routers import auth, usuarios, categorias, productos, ventas, cortes, incidencias, auditorias, reportes
+from app.routers import auth, usuarios, categorias, productos, ventas, cortes, incidencias, auditorias, reportes, configuracion
 
 app.include_router(auth.router)
 app.include_router(usuarios.router)
@@ -58,6 +59,7 @@ app.include_router(cortes.router)
 app.include_router(incidencias.router)
 app.include_router(auditorias.router)
 app.include_router(reportes.router)
+app.include_router(configuracion.router)
 
 
 # Endpoint raíz 
