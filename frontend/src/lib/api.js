@@ -23,6 +23,8 @@ export function obtenerApiBase() {
 }
 
 export const API_URL = obtenerApiBase();
+export const ES_APP_ESCRITORIO = typeof window !== 'undefined' && Boolean(window.STOKO_DESKTOP);
+export const MOSTRAR_DETALLE_API = !ES_APP_ESCRITORIO || Boolean(import.meta.env?.DEV);
 export const API_HOST_LABEL = obtenerApiBase()
   ? obtenerApiBase().replace(/^https?:\/\//i, '')
   : 'mismo origen';

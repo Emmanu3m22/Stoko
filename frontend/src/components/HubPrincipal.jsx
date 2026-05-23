@@ -3,7 +3,7 @@ import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
-import { API_HOST_LABEL, apiFetch, authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
+import { API_HOST_LABEL, MOSTRAR_DETALLE_API, apiFetch, authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 import {
   VENTAS_OFFLINE_EVENT,
   contarVentasPendientes,
@@ -52,21 +52,23 @@ const MENU = [
   { id: 'config',    label: 'Configuración',    icon: 'cog', roles: [ROLES.ADMINISTRADOR] },
 ];
 
+const DETALLE_API = MOSTRAR_DETALLE_API ? ` · ${API_HOST_LABEL}` : '';
+
 const ESTADO_API_UI = {
   verificando: {
-    texto: `Verificando API · ${API_HOST_LABEL}`,
+    texto: `Verificando sistema local${DETALLE_API}`,
     punto: 'bg-amber-400',
     fondo: 'bg-amber-50',
     textoColor: 'text-amber-700',
   },
   conectada: {
-    texto: `API conectada · ${API_HOST_LABEL}`,
+    texto: `Sistema local activo${DETALLE_API}`,
     punto: 'bg-emerald-400',
     fondo: 'bg-gray-100',
     textoColor: 'text-gray-500',
   },
   desconectada: {
-    texto: `API sin conexión · ${API_HOST_LABEL}`,
+    texto: `Servicio local sin conexión${DETALLE_API}`,
     punto: 'bg-red-500',
     fondo: 'bg-red-50',
     textoColor: 'text-red-700',
