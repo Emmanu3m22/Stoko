@@ -1,0 +1,49 @@
+{
+  "name": "stoko-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "check": "node --check main.cjs && node --check preload.cjs",
+    "build:frontend": "npm --prefix ../frontend run build:electron",
+    "build:mac": "npm run build:frontend && electron-builder --mac",
+    "build:win": "npm run build:frontend && electron-builder --win",
+    "build:linux": "npm run build:frontend && electron-builder --linux"
+  },
+  "dependencies": {
+    "electron": "^38.5.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^27.2.0"
+  },
+  "build": {
+    "appId": "com.stoko.pos",
+    "productName": "Stoko",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend/dist"
+      },
+      {
+        "from": "../backend",
+        "to": "backend",
+        "filter": [
+          "app/**",
+          "requirements.txt"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "backend/**/*"
+    ]
+  }
+}

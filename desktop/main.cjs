@@ -1,0 +1,175 @@
+const { app, BrowserWindow, dialog } = require('electron');
+const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const http = require('node:http');
+const net = require('node:net');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+
+let backendProcess = null;
+let mainWindow = null;
+let apiUrl = null;
+
+const isDev = !app.isPackaged;
+const projectRoot = path.resolve(__dirname, '..');
+
+function resolveBackendDir() {
+  if (process.env.STOKO_BACKEND_DIR) return process.env.STOKO_BACKEND_DIR;
+  if (isDev) return path.join(projectRoot, 'backend');
+  return path.join(process.resourcesPath, 'backend');
+}
+
+function resolvePythonCommand(backendDir) {
+  if (process.env.STOKO_PYTHON) return process.env.STOKO_PYTHON;
+
+  const candidates = process.platform === 'win32'
+    ? [
+        path.join(backendDir, '.venv', 'Scripts', 'python.exe'),
+        path.join(backendDir, 'venv', 'Scripts', 'python.exe'),
+        'python',
+      ]
+    : [
+        path.join(backendDir, '.venv', 'bin', 'python'),
+        path.join(backendDir, 'venv', 'bin', 'python'),
+        'python3',
+        'python',
+      ];
+
+  return candidates.find((candidate) => candidate.includes(path.sep) ? fs.existsSync(candidate) : true);
+}
+
+function findFreePort(host = '127.0.0.1') {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on('error', reject);
+    server.listen(0, host, () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+  });
+}
+
+function waitForBackend(url, timeoutMs = 20000) {
+  const started = Date.now();
+
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      const req = http.get(`${url}/api/v1/sistema/estado`, (res) => {
+        res.resume();
+        if (res.statusCode >= 200 && res.statusCode < 500) {
+          resolve();
+          return;
+        }
+        retry();
+      });
+
+      req.on('error', retry);
+      req.setTimeout(1500, () => {
+        req.destroy();
+        retry();
+      });
+    };
+
+    const retry = () => {
+      if (Date.now() - started > timeoutMs) {
+        reject(new Error('El backend local no respondió a tiempo.'));
+        return;
+      }
+      setTimeout(check, 300);
+    };
+
+    check();
+  });
+}
+
+async function startBackend() {
+  const backendDir = resolveBackendDir();
+  const python = resolvePythonCommand(backendDir);
+  const userData = app.getPath('userData');
+  const port = Number(process.env.STOKO_API_PORT) || await findFreePort();
+  apiUrl = `http://127.0.0.1:${port}`;
+
+  backendProcess = spawn(python, [
+    '-m',
+    'uvicorn',
+    'app.main:app',
+    '--host',
+    '127.0.0.1',
+    '--port',
+    String(port),
+  ], {
+    cwd: backendDir,
+    env: {
+      ...process.env,
+      STOKO_DB_PATH: process.env.STOKO_DB_PATH || path.join(userData, 'stoko.db'),
+      STOKO_CONFIG_DIR: process.env.STOKO_CONFIG_DIR || userData,
+    },
+    stdio: isDev ? 'inherit' : 'ignore',
+  });
+
+  backendProcess.on('exit', (code) => {
+    if (code !== 0 && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('stoko:backend-exit', code);
+    }
+  });
+
+  await waitForBackend(apiUrl);
+}
+
+function resolveFrontendUrl() {
+  if (process.env.STOKO_FRONTEND_URL) return process.env.STOKO_FRONTEND_URL;
+
+  const distIndex = isDev
+    ? path.join(projectRoot, 'frontend', 'dist', 'index.html')
+    : path.join(process.resourcesPath, 'frontend', 'dist', 'index.html');
+  if (fs.existsSync(distIndex)) return pathToFileURL(distIndex).toString();
+
+  return 'http://localhost:5173';
+}
+
+async function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 820,
+    minWidth: 1024,
+    minHeight: 720,
+    title: 'Stoko',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      additionalArguments: [`--stoko-api-url=${apiUrl}`],
+    },
+  });
+
+  await mainWindow.loadURL(resolveFrontendUrl());
+}
+
+async function boot() {
+  try {
+    await startBackend();
+    await createWindow();
+  } catch (error) {
+    dialog.showErrorBox('No se pudo iniciar Stoko', error.message);
+    app.quit();
+  }
+}
+
+app.whenReady().then(boot);
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0 && apiUrl) {
+    createWindow();
+  }
+});
+
+app.on('before-quit', () => {
+  if (backendProcess && !backendProcess.killed) {
+    backendProcess.kill();
+  }
+});
