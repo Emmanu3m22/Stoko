@@ -164,6 +164,21 @@ export async function crearAdminInicial({ nombre, email, password }) {
   return sesion;
 }
 
+export async function solicitarAcceso({ nombre, email, rol_solicitado, mensaje }) {
+  let res;
+  try {
+    res = await fetch(apiUrl('/api/v1/auth/solicitudes-acceso'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, email, rol_solicitado, mensaje }),
+    });
+  } catch (error) {
+    throw normalizarErrorFetch(error);
+  }
+
+  return leerRespuestaApi(res, 'No se pudo enviar la solicitud de acceso.');
+}
+
 export async function apiFetch(path, options = {}, sesion = obtenerSesion()) {
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && options.body) {

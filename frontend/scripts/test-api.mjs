@@ -25,6 +25,7 @@ const {
   mensajeErrorApi,
   obtenerEstadoSetupInicial,
   obtenerSesion,
+  solicitarAcceso,
 } = await import('../src/lib/api.js');
 
 const segmento = (valor) => Buffer.from(JSON.stringify(valor)).toString('base64url');
@@ -62,6 +63,28 @@ globalThis.fetch = async (url, options = {}) => {
     });
   }
 
+  if (url === 'http://localhost:8000/api/v1/auth/solicitudes-acceso' && options.method === 'POST') {
+    const body = JSON.parse(options.body);
+    assert.equal(body.nombre, 'Cajero Local');
+    assert.equal(body.email, 'cajero@local.test');
+    assert.equal(body.rol_solicitado, 'cajero');
+
+    return new Response(JSON.stringify({
+      id_solicitud: 1,
+      nombre: 'Cajero Local',
+      email: 'cajero@local.test',
+      rol_solicitado: 'cajero',
+      mensaje: 'Turno vespertino',
+      estado: 'pendiente',
+      fecha: new Date().toISOString(),
+      fecha_resolucion: null,
+      id_usuario_creado: null,
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   throw new Error(`URL inesperada: ${url}`);
 };
 
@@ -73,6 +96,14 @@ const sesionSetup = await crearAdminInicial({
 });
 assert.equal(sesionSetup.usuario.nombre, 'Admin Local');
 assert.equal(obtenerSesion().token, tokenSetup);
+
+const solicitudAcceso = await solicitarAcceso({
+  nombre: 'Cajero Local',
+  email: 'cajero@local.test',
+  rol_solicitado: 'cajero',
+  mensaje: 'Turno vespertino',
+});
+assert.equal(solicitudAcceso.estado, 'pendiente');
 
 globalThis.fetch = async () => {
   throw new TypeError('Failed to fetch');

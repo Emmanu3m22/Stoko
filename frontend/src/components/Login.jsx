@@ -4,6 +4,7 @@ import {
   iniciarSesion,
   mensajeErrorApi,
   obtenerEstadoSetupInicial,
+  solicitarAcceso,
 } from '../lib/api';
 
 export default function Login({ onLoginExitoso }) {
@@ -11,6 +12,10 @@ export default function Login({ onLoginExitoso }) {
   const [password, setPassword] = useState('');
   const [nombreAdmin, setNombreAdmin] = useState('');
   const [confirmarPassword, setConfirmarPassword] = useState('');
+  const [modoSolicitud, setModoSolicitud] = useState(false);
+  const [rolSolicitado, setRolSolicitado] = useState('cajero');
+  const [mensajeSolicitud, setMensajeSolicitud] = useState('');
+  const [solicitudEnviada, setSolicitudEnviada] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [error, setError]       = useState('');
   const [verPass, setVerPass]   = useState(false);
@@ -45,7 +50,19 @@ export default function Login({ onLoginExitoso }) {
 
     try {
       let sesion;
-      if (requiereSetup) {
+      if (modoSolicitud && !requiereSetup) {
+        await solicitarAcceso({
+          nombre: nombreAdmin.trim(),
+          email: email.trim(),
+          rol_solicitado: rolSolicitado,
+          mensaje: mensajeSolicitud.trim() || null,
+        });
+        setSolicitudEnviada(true);
+        setNombreAdmin('');
+        setEmail('');
+        setMensajeSolicitud('');
+        return;
+      } else if (requiereSetup) {
         if (password !== confirmarPassword) {
           setError('Las contraseñas no coinciden.');
           return;
@@ -64,6 +81,14 @@ export default function Login({ onLoginExitoso }) {
     } finally {
       setCargando(false);
     }
+  };
+
+  const cambiarModoSolicitud = () => {
+    setModoSolicitud((actual) => !actual);
+    setError('');
+    setSolicitudEnviada(false);
+    setPassword('');
+    setConfirmarPassword('');
   };
 
   return (
@@ -129,21 +154,27 @@ export default function Login({ onLoginExitoso }) {
               Portal Operativo
             </p>
             <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">
-              {requiereSetup ? 'Configura el administrador' : 'Bienvenido de nuevo'}
+              {requiereSetup
+                ? 'Configura el administrador'
+                : modoSolicitud
+                  ? 'Solicita acceso'
+                  : 'Bienvenido de nuevo'}
             </h2>
             <p className="text-gray-500 text-sm">
               {requiereSetup
                 ? 'Crea la primera cuenta para usar esta instalación local.'
-                : 'Ingresa tus credenciales para acceder al sistema.'}
+                : modoSolicitud
+                  ? 'Un administrador revisará tu solicitud y te asignará una contraseña temporal.'
+                  : 'Ingresa tus credenciales para acceder al sistema.'}
             </p>
           </div>
 
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {requiereSetup && (
+            {(requiereSetup || modoSolicitud) && (
               <div>
                 <label htmlFor="nombre-admin" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Nombre del administrador
+                  {requiereSetup ? 'Nombre del administrador' : 'Nombre completo'}
                 </label>
                 <input
                   id="nombre-admin"
@@ -152,7 +183,7 @@ export default function Login({ onLoginExitoso }) {
                   autoComplete="name"
                   value={nombreAdmin}
                   onChange={(e) => { setNombreAdmin(e.target.value); setError(''); }}
-                  placeholder="Administrador"
+                  placeholder={requiereSetup ? 'Administrador' : 'Nombre y apellido'}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm
                              focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
                 />
@@ -177,74 +208,112 @@ export default function Login({ onLoginExitoso }) {
               />
             </div>
 
-            {/* Contraseña */}
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
-                  Contraseña
-                </label>
-                <button
-                  type="button"
-                  className="text-xs text-[#4169E1] hover:underline font-medium"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={verPass ? 'text' : 'password'}
-                  required
-                  minLength={requiereSetup ? 8 : undefined}
-                  autoComplete={requiereSetup ? 'new-password' : 'current-password'}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm
-                             focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
-                />
-                <button
-                  type="button"
-                  onClick={() => setVerPass(!verPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-label={verPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  {verPass ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
+            {!modoSolicitud && (
+              <>
+                {/* Contraseña */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
+                      Contraseña
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={verPass ? 'text' : 'password'}
+                      required
+                      minLength={requiereSetup ? 8 : undefined}
+                      autoComplete={requiereSetup ? 'new-password' : 'current-password'}
+                      value={password}
+                      onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setVerPass(!verPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label={verPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {verPass ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-            {requiereSetup && (
-              <div>
-                <label htmlFor="confirmar-password" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Confirmar contraseña
-                </label>
-                <input
-                  id="confirmar-password"
-                  type={verPass ? 'text' : 'password'}
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  value={confirmarPassword}
-                  onChange={(e) => { setConfirmarPassword(e.target.value); setError(''); }}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm
-                             focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
-                />
+                {requiereSetup && (
+                  <div>
+                    <label htmlFor="confirmar-password" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                      Confirmar contraseña
+                    </label>
+                    <input
+                      id="confirmar-password"
+                      type={verPass ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      autoComplete="new-password"
+                      value={confirmarPassword}
+                      onChange={(e) => { setConfirmarPassword(e.target.value); setError(''); }}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+
+            {modoSolicitud && !requiereSetup && (
+              <>
+                <div>
+                  <label htmlFor="rol-solicitado" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Rol solicitado
+                  </label>
+                  <select
+                    id="rol-solicitado"
+                    value={rolSolicitado}
+                    onChange={(e) => setRolSolicitado(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-sm
+                               focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
+                  >
+                    <option value="cajero">Cajero</option>
+                    <option value="administrador">Administrador</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="mensaje-solicitud" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Mensaje
+                  </label>
+                  <textarea
+                    id="mensaje-solicitud"
+                    value={mensajeSolicitud}
+                    onChange={(e) => setMensajeSolicitud(e.target.value)}
+                    placeholder="Área, turno o motivo de acceso"
+                    rows={3}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm resize-none
+                               focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
+                  />
+                </div>
+              </>
+            )}
+
+            {solicitudEnviada && (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl">
+                Solicitud enviada. Pide a un administrador que la revise en Configuración.
               </div>
             )}
 
             {/* Recordarme */}
-            {!requiereSetup && (
+            {!requiereSetup && !modoSolicitud && (
               <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -286,6 +355,8 @@ export default function Login({ onLoginExitoso }) {
                 </>
               ) : requiereSetup ? (
                 'Crear administrador'
+              ) : modoSolicitud ? (
+                'Enviar solicitud'
               ) : (
                 <>
                   Iniciar Sesión
@@ -300,9 +371,9 @@ export default function Login({ onLoginExitoso }) {
           {/* Footer */}
           {!requiereSetup && (
             <p className="mt-8 text-center text-xs text-gray-400">
-            ¿No tienes cuenta?{' '}
-            <button className="text-[#4169E1] font-semibold hover:underline">
-              Solicitar acceso al administrador
+            {modoSolicitud ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}{' '}
+            <button type="button" onClick={cambiarModoSolicitud} className="text-[#4169E1] font-semibold hover:underline">
+              {modoSolicitud ? 'Iniciar sesión' : 'Solicitar acceso al administrador'}
             </button>
             </p>
           )}

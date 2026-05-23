@@ -87,6 +87,42 @@ def crear_setup_inicial(
     return _crear_respuesta_token(usuario)
 
 
+@router.post("/solicitudes-acceso", response_model=schemas.SolicitudAccesoResponse, status_code=status.HTTP_201_CREATED)
+def crear_solicitud_acceso(
+    datos: schemas.SolicitudAccesoCreate,
+    db: Session = Depends(get_db),
+):
+    """Registra una solicitud de acceso para revisión de un administrador."""
+    email = str(datos.email).strip().lower()
+    if db.query(models.Usuario).filter(models.Usuario.email == email).first():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ya existe un usuario con ese correo.",
+        )
+
+    pendiente = db.query(models.SolicitudAcceso).filter(
+        models.SolicitudAcceso.email == email,
+        models.SolicitudAcceso.estado == "pendiente",
+    ).first()
+    if pendiente:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ya hay una solicitud pendiente para ese correo.",
+        )
+
+    solicitud = models.SolicitudAcceso(
+        nombre=datos.nombre.strip(),
+        email=email,
+        rol_solicitado=datos.rol_solicitado,
+        mensaje=datos.mensaje.strip() if datos.mensaje else None,
+        estado="pendiente",
+    )
+    db.add(solicitud)
+    db.commit()
+    db.refresh(solicitud)
+    return solicitud
+
+
 @router.post("/login", response_model=schemas.TokenResponse)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),

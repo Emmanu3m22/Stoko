@@ -92,6 +92,28 @@ class Usuario(Base):
         return f"<Usuario(id={self.id_usuario}, email='{self.email}')>"
 
 
+class SolicitudAcceso(Base):
+    """
+    Solicitudes de acceso creadas desde la pantalla de login.
+    Un administrador debe aprobarlas para crear el usuario real.
+    """
+    __tablename__ = "solicitudes_acceso"
+
+    id_solicitud = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(100), nullable=False)
+    email = Column(String(150), nullable=False, index=True)
+    rol_solicitado = Column(String(50), default="cajero", nullable=False)
+    mensaje = Column(Text, nullable=True)
+    estado = Column(String(20), default="pendiente", nullable=False)
+    fecha = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fecha_resolucion = Column(DateTime, nullable=True)
+    id_usuario_resolvio = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+    id_usuario_creado = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+
+    def __repr__(self):
+        return f"<SolicitudAcceso(id={self.id_solicitud}, email='{self.email}', estado='{self.estado}')>"
+
+
 
 # CATEGORÍAS
 

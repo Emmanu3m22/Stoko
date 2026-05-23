@@ -77,6 +77,32 @@ class UsuarioResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SolicitudAccesoCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    rol_solicitado: str = Field("cajero", pattern="^(administrador|cajero)$")
+    mensaje: Optional[str] = Field(None, max_length=500)
+
+
+class SolicitudAccesoResponse(BaseModel):
+    id_solicitud: int
+    nombre: str
+    email: str
+    rol_solicitado: str
+    mensaje: Optional[str] = None
+    estado: str
+    fecha: datetime
+    fecha_resolucion: Optional[datetime] = None
+    id_usuario_creado: Optional[int] = None
+    model_config = {"from_attributes": True}
+
+
+class SolicitudAccesoDecision(BaseModel):
+    estado: str = Field(..., pattern="^(aprobada|rechazada)$")
+    id_rol: Optional[int] = None
+    password: Optional[str] = Field(None, min_length=6)
+
+
 # CATEGORIAS
 
 class CategoriaCreate(BaseModel):

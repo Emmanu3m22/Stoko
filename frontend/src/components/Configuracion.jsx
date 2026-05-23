@@ -14,7 +14,9 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
   const esAdministrador = sesion?.usuario?.rol?.toLowerCase() === 'administrador';
   
   const [usuarios, setUsuarios] = useState([]);
+  const [solicitudesAcceso, setSolicitudesAcceso] = useState([]);
   const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
+  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(false);
   const [errorUsuarios, setErrorUsuarios] = useState('');
   const [perfilActual, setPerfilActual] = useState(null);
   const [cargandoPerfil, setCargandoPerfil] = useState(false);
@@ -39,6 +41,8 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
   const [modalEdicion, setModalEdicion] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [errorEdicion, setErrorEdicion] = useState('');
+  const [passwordSolicitudes, setPasswordSolicitudes] = useState({});
+  const [solicitudEnAccion, setSolicitudEnAccion] = useState(null);
 
   const rolesDisponibles = useMemo(() => usuarios
     .map((usuario) => usuario.rol)
@@ -78,6 +82,20 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
     }
   }, [sesion, esAdministrador, mostrarNotificacion]);
 
+  const cargarSolicitudesAcceso = useCallback(async () => {
+    if (!esAdministrador) return;
+    setCargandoSolicitudes(true);
+    try {
+      const res = await authFetch('/api/v1/usuarios/solicitudes-acceso/', sesion);
+      const data = await leerRespuestaApi(res, 'No se pudieron cargar las solicitudes de acceso.');
+      setSolicitudesAcceso(data);
+    } catch (err) {
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudieron cargar las solicitudes de acceso.'), 'error');
+    } finally {
+      setCargandoSolicitudes(false);
+    }
+  }, [sesion, esAdministrador, mostrarNotificacion]);
+
   const cargarConfigIA = useCallback(async () => {
     if (!esAdministrador) return;
     setCargandoIA(true);
@@ -100,12 +118,13 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
   useEffect(() => {
     if (pestaña === 'usuarios') {
       cargarUsuarios();
+      cargarSolicitudesAcceso();
     } else if (pestaña === 'perfil') {
       cargarPerfil();
     } else if (pestaña === 'ia') {
       cargarConfigIA();
     }
-  }, [pestaña, cargarUsuarios, cargarPerfil, cargarConfigIA]);
+  }, [pestaña, cargarUsuarios, cargarSolicitudesAcceso, cargarPerfil, cargarConfigIA]);
 
   const agregarUsuario = async (e) => {
     e.preventDefault();
@@ -137,6 +156,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       setNuevoRol('2');
       mostrarNotificacion(`Usuario ${nombre} agregado correctamente.`);
       cargarUsuarios();
+      cargarSolicitudesAcceso();
     } catch (err) {
       const mensaje = mensajeErrorApi(err, 'No se pudo crear el usuario.');
       if (mensaje.toLowerCase().includes("registrado")) {
@@ -238,6 +258,40 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       mostrarNotificacion(mensajeErrorApi(err, 'No se pudo activar el usuario.'), 'error');
     } finally {
       setUsuarioEnAccion(null);
+    }
+  };
+
+  const resolverSolicitudAcceso = async (solicitud, estado) => {
+    const password = passwordSolicitudes[solicitud.id_solicitud] || '';
+    if (estado === 'aprobada' && password.length < 6) {
+      mostrarNotificacion('Define una contraseña temporal de al menos 6 caracteres.', 'error');
+      return;
+    }
+
+    setSolicitudEnAccion(solicitud.id_solicitud);
+    try {
+      const rol = rolesDisponibles.find((item) => normalizarRol(item) === solicitud.rol_solicitado);
+      const res = await authFetch(`/api/v1/usuarios/solicitudes-acceso/${solicitud.id_solicitud}`, sesion, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          estado,
+          id_rol: rol?.id_rol,
+          password: estado === 'aprobada' ? password : undefined,
+        }),
+      });
+      await leerRespuestaApi(res, 'No se pudo resolver la solicitud.');
+      setPasswordSolicitudes((prev) => {
+        const siguiente = { ...prev };
+        delete siguiente[solicitud.id_solicitud];
+        return siguiente;
+      });
+      mostrarNotificacion(estado === 'aprobada' ? 'Solicitud aprobada y usuario creado.' : 'Solicitud rechazada.');
+      cargarSolicitudesAcceso();
+      cargarUsuarios();
+    } catch (err) {
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo resolver la solicitud.'), 'error');
+    } finally {
+      setSolicitudEnAccion(null);
     }
   };
 
@@ -446,7 +500,76 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
       )}
 
       {pestaña === 'usuarios' && (
-        <div className="flex gap-6">
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Solicitudes de Acceso</h2>
+                <p className="text-sm text-gray-500 mt-1">Aprueba solicitudes creando una contraseña temporal para el usuario.</p>
+              </div>
+              <button
+                type="button"
+                onClick={cargarSolicitudesAcceso}
+                disabled={cargandoSolicitudes}
+                className="text-xs font-bold text-[#4169E1] bg-blue-50 hover:bg-blue-100 disabled:opacity-50 rounded-lg px-3 py-2"
+              >
+                {cargandoSolicitudes ? 'Actualizando...' : 'Actualizar'}
+              </button>
+            </div>
+
+            {cargandoSolicitudes ? (
+              <p className="text-gray-500">Cargando solicitudes...</p>
+            ) : solicitudesAcceso.length === 0 ? (
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-500">
+                No hay solicitudes pendientes.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {solicitudesAcceso.map((solicitud) => {
+                  const enAccion = solicitudEnAccion === solicitud.id_solicitud;
+                  return (
+                    <div key={solicitud.id_solicitud} className="grid grid-cols-1 lg:grid-cols-[1fr_240px_auto] gap-4 items-center rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                      <div>
+                        <p className="font-bold text-gray-900">{solicitud.nombre}</p>
+                        <p className="text-sm text-gray-500">{solicitud.email}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Rol solicitado: <span className="font-semibold capitalize">{solicitud.rol_solicitado}</span>
+                          {solicitud.mensaje ? ` · ${solicitud.mensaje}` : ''}
+                        </p>
+                      </div>
+                      <input
+                        type="password"
+                        value={passwordSolicitudes[solicitud.id_solicitud] || ''}
+                        onChange={(e) => setPasswordSolicitudes((prev) => ({ ...prev, [solicitud.id_solicitud]: e.target.value }))}
+                        placeholder="Contraseña temporal"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={enAccion}
+                          onClick={() => resolverSolicitudAcceso(solicitud, 'rechazada')}
+                          className="px-3 py-2 rounded-lg text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          Rechazar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={enAccion}
+                          onClick={() => resolverSolicitudAcceso(solicitud, 'aprobada')}
+                          className="px-3 py-2 rounded-lg text-xs font-bold text-white bg-[#4169E1] hover:bg-[#3155c7] disabled:opacity-50"
+                        >
+                          Aprobar
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-6">
           <div className="flex-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center justify-between gap-4 mb-4">
               <h2 className="text-xl font-bold text-gray-900">Directorio de Personal</h2>
@@ -542,6 +665,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
               {guardandoUsuario ? 'Guardando...' : 'Guardar Usuario'}
             </button>
           </form>
+          </div>
         </div>
       )}
 

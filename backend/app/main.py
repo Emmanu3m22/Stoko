@@ -15,7 +15,7 @@ from app import models
 from app.models import (
     Rol, Usuario, Categoria, Producto,
     Venta, DetalleVenta, CorteCaja, Incidencia, LogAuditoria,
-    ConfiguracionSistema,
+    ConfiguracionSistema, SolicitudAcceso,
 )
 
 # Crear todas las tablas 
