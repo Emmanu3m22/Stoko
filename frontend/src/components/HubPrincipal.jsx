@@ -3,7 +3,7 @@ import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
-import { API_HOST_LABEL, authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
+import { API_HOST_LABEL, apiFetch, authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 import {
   VENTAS_OFFLINE_EVENT,
   contarVentasPendientes,
@@ -51,6 +51,27 @@ const MENU = [
   { id: 'reportes',  label: 'Reportes',         icon: 'bar', roles: [ROLES.ADMINISTRADOR] },
   { id: 'config',    label: 'Configuración',    icon: 'cog', roles: [ROLES.ADMINISTRADOR] },
 ];
+
+const ESTADO_API_UI = {
+  verificando: {
+    texto: `Verificando API · ${API_HOST_LABEL}`,
+    punto: 'bg-amber-400',
+    fondo: 'bg-amber-50',
+    textoColor: 'text-amber-700',
+  },
+  conectada: {
+    texto: `API conectada · ${API_HOST_LABEL}`,
+    punto: 'bg-emerald-400',
+    fondo: 'bg-gray-100',
+    textoColor: 'text-gray-500',
+  },
+  desconectada: {
+    texto: `API sin conexión · ${API_HOST_LABEL}`,
+    punto: 'bg-red-500',
+    fondo: 'bg-red-50',
+    textoColor: 'text-red-700',
+  },
+};
 
 // ── Dashboard (usa datos reales) ─────────────────────────────────────────────
 function Dashboard({ productos, cargando, onNavegar, mostrarNotificacion }) {
@@ -192,6 +213,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
   const [ventasPendientes, setVentasPendientes] = useState(0);
   const [sincronizandoVentas, setSincronizandoVentas] = useState(false);
   const [corteActivo, setCorteActivo] = useState(undefined); // undefined = cargando, null = sin turno
+  const [estadoApi, setEstadoApi] = useState('verificando');
 
   const fetchProductos = useCallback(async () => {
     setCargando(true);
@@ -231,6 +253,16 @@ export default function HubPrincipal({ sesion, onLogout }) {
   const actualizarVentasPendientes = useCallback(async () => {
     setVentasPendientes(await contarVentasPendientes({ usuarioId: sesion?.usuario?.id }));
   }, [sesion]);
+
+  const verificarApi = useCallback(async () => {
+    try {
+      const res = await apiFetch('/api/v1/sistema/estado', {}, null);
+      await leerRespuestaApi(res, 'No se pudo verificar el estado de la API.');
+      setEstadoApi('conectada');
+    } catch {
+      setEstadoApi('desconectada');
+    }
+  }, []);
 
   const sincronizarVentasOffline = useCallback(async ({ notificar = false } = {}) => {
     if (!sesion?.token || sincronizandoVentasRef.current) return;
@@ -281,6 +313,21 @@ export default function HubPrincipal({ sesion, onLogout }) {
       window.removeEventListener('online', manejarOnline);
     };
   }, [actualizarVentasPendientes, sincronizarVentasOffline]);
+
+  useEffect(() => {
+    verificarApi();
+    const intervalo = window.setInterval(verificarApi, 30000);
+    const marcarOffline = () => setEstadoApi('desconectada');
+
+    window.addEventListener('online', verificarApi);
+    window.addEventListener('offline', marcarOffline);
+
+    return () => {
+      window.clearInterval(intervalo);
+      window.removeEventListener('online', verificarApi);
+      window.removeEventListener('offline', marcarOffline);
+    };
+  }, [verificarApi]);
 
   useEffect(() => {
     if (!menuVisible.some((item) => item.id === menuActivo)) {
@@ -460,6 +507,8 @@ export default function HubPrincipal({ sesion, onLogout }) {
     }
   };
 
+  const estadoApiUi = ESTADO_API_UI[estadoApi] || ESTADO_API_UI.verificando;
+
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden relative">
 
@@ -536,9 +585,9 @@ export default function HubPrincipal({ sesion, onLogout }) {
                 {sincronizandoVentas ? 'Sincronizando ventas...' : `${ventasPendientes} venta${ventasPendientes !== 1 ? 's' : ''} pendiente${ventasPendientes !== 1 ? 's' : ''}`}
               </button>
             )}
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              API conectada · {API_HOST_LABEL}
+            <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full ${estadoApiUi.fondo} ${estadoApiUi.textoColor}`}>
+              <span className={`w-2 h-2 rounded-full ${estadoApiUi.punto} ${estadoApi !== 'desconectada' ? 'animate-pulse' : ''}`} />
+              {estadoApiUi.texto}
             </div>
           </div>
         </header>

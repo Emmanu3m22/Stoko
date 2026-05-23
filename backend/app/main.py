@@ -48,7 +48,7 @@ app.add_middleware(
 )
 
 # Registrar routers 
-from app.routers import auth, usuarios, categorias, productos, ventas, cortes, incidencias, auditorias, reportes, configuracion
+from app.routers import auth, usuarios, categorias, productos, ventas, cortes, incidencias, auditorias, reportes, configuracion, sistema
 
 app.include_router(auth.router)
 app.include_router(usuarios.router)
@@ -60,6 +60,7 @@ app.include_router(incidencias.router)
 app.include_router(auditorias.router)
 app.include_router(reportes.router)
 app.include_router(configuracion.router)
+app.include_router(sistema.router)
 
 
 # Endpoint raíz 
