@@ -2,7 +2,7 @@
 main.py — Punto de entrada de la API Stoko.
 
 Conecta la BD real (SQLite), registra todos los routers y siembra
-datos iniciales (roles, admin, productos de ejemplo) en el primer arranque.
+solo los roles base del sistema en el primer arranque.
 """
 
 from fastapi import FastAPI
@@ -79,7 +79,7 @@ def _seed_database():
     """
     Siembra datos iniciales si la BD está vacía:
     - Roles: administrador, cajero
-    - Categorías y productos de ejemplo
+    El catálogo queda vacío para que cada instalación capture sus datos reales.
     """
     db = SessionLocal()
     try:
@@ -96,59 +96,8 @@ def _seed_database():
         if db.query(Usuario).count() == 0:
             print("[Seed] Sin usuarios: crea el administrador inicial desde la app.")
 
-        # Categorías
-        if db.query(Categoria).count() == 0:
-            cats = [
-                Categoria(nombre="Relojería"),
-                Categoria(nombre="Accesorios"),
-                Categoria(nombre="Óptica"),
-                Categoria(nombre="Calzado Deportivo"),
-                Categoria(nombre="General"),
-            ]
-            db.add_all(cats)
-            db.commit()
-            print("[Seed] Categorías creadas")
-
-        #Productos de ejemplo 
-        if db.query(Producto).count() == 0:
-            cat_map = {c.nombre: c.id_categoria for c in db.query(Categoria).all()}
-            productos = [
-                Producto(
-                    nombre="Reloj Cronógrafo Sovereign A",
-                    codigo_barras="STK-0024-X",
-                    precio_unitario=1240.0,
-                    stock_actual=42,
-                    stock_minimo=5,
-                    id_categoria=cat_map.get("Relojería"),
-                ),
-                Producto(
-                    nombre="Pulsera Titanium Edge",
-                    codigo_barras="STK-0037-B",
-                    precio_unitario=580.0,
-                    stock_actual=15,
-                    stock_minimo=5,
-                    id_categoria=cat_map.get("Accesorios"),
-                ),
-                Producto(
-                    nombre="Gafas Polarizadas Onyx",
-                    codigo_barras="STK-0051-C",
-                    precio_unitario=890.0,
-                    stock_actual=8,
-                    stock_minimo=10,
-                    id_categoria=cat_map.get("Óptica"),
-                ),
-                Producto(
-                    nombre="Zapatillas Running Pro",
-                    codigo_barras="ZAP-RUN-001",
-                    precio_unitario=850.5,
-                    stock_actual=3,
-                    stock_minimo=5,
-                    id_categoria=cat_map.get("Calzado Deportivo"),
-                ),
-            ]
-            db.add_all(productos)
-            db.commit()
-            print("[Seed] Productos de ejemplo creados (4 productos)")
+        if db.query(Categoria).count() == 0 and db.query(Producto).count() == 0:
+            print("[Seed] Catálogo sin datos de ejemplo.")
 
     except Exception as e:
         print(f"[Seed] Error durante el seed: {e}")
