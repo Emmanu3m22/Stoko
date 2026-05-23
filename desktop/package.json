@@ -13,10 +13,8 @@
     "build:win": "npm run build:frontend && npm run build:backend && electron-builder --win",
     "build:linux": "npm run build:frontend && npm run build:backend && electron-builder --linux"
   },
-  "dependencies": {
-    "electron": "^38.5.0"
-  },
   "devDependencies": {
+    "electron": "^42.2.0",
     "electron-builder": "^26.8.1"
   },
   "build": {
