@@ -3,13 +3,14 @@ core/security.py — Utilidades de seguridad: hashing de passwords y JWT.
 """
 
 from datetime import datetime, timedelta
+import os
 from typing import Optional
 
 from jose import JWTError, jwt
 import bcrypt
 
 # Configuración 
-SECRET_KEY  = "stoko-super-secret-key-cambiar-en-produccion"
+SECRET_KEY  = os.getenv("STOKO_SECRET_KEY", "stoko-super-secret-key-cambiar-en-produccion")
 ALGORITHM   = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480   # 8 horas
 
