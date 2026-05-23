@@ -14,7 +14,7 @@ Comandos:
 
 ```bash
 cd backend
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r requirements-build.txt
 
 cd ../frontend
 npm install
@@ -22,6 +22,7 @@ npm run build:electron
 
 cd ../desktop
 npm install
+npm run build:backend
 npm run dev
 ```
 
@@ -37,6 +38,5 @@ Los scripts `build:mac`, `build:win` y `build:linux` preparan el frontend y ejec
 
 Pendiente antes de distribución real:
 
-- Incluir un runtime Python o backend congelado dentro del instalador.
 - Probar instalación limpia en cada sistema operativo.
 - Definir firma/notarización y estrategia de actualización.

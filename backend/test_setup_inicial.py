@@ -10,6 +10,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.database import Base, get_db
 from app.main import app
+from app import models
+from app.core.security import hash_password
 
 
 def crear_cliente_temporal():
@@ -29,11 +31,11 @@ def crear_cliente_temporal():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    return TestClient(app), tmp
+    return TestClient(app), TestingSessionLocal, tmp
 
 
 def main():
-    client, tmp = crear_cliente_temporal()
+    client, _SessionLocal, tmp = crear_cliente_temporal()
     try:
         status_inicial = client.get("/api/v1/auth/setup")
         assert status_inicial.status_code == 200, status_inicial.text
@@ -72,6 +74,30 @@ def main():
             data={"username": "admin.local@stokoapp.com", "password": "password123"},
         )
         assert login.status_code == 200, login.text
+
+        client2, SessionLocal2, tmp2 = crear_cliente_temporal()
+        try:
+            db = SessionLocal2()
+            try:
+                cajero = models.Rol(nombre="cajero")
+                db.add(cajero)
+                db.flush()
+                db.add(models.Usuario(
+                    nombre="Cajero sin admin",
+                    email="cajero.sin.admin@stokoapp.com",
+                    password=hash_password("password123"),
+                    id_rol=cajero.id_rol,
+                    activo=True,
+                ))
+                db.commit()
+            finally:
+                db.close()
+
+            status_sin_admin = client2.get("/api/v1/auth/setup")
+            assert status_sin_admin.status_code == 200, status_sin_admin.text
+            assert status_sin_admin.json()["requiere_configuracion"] is True
+        finally:
+            tmp2.cleanup()
 
         print("Pruebas de configuración inicial completadas correctamente.")
     finally:

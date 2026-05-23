@@ -19,6 +19,19 @@ function resolveBackendDir() {
   return path.join(process.resourcesPath, 'backend');
 }
 
+function resolveBackendExecutable() {
+  if (process.env.STOKO_BACKEND_EXECUTABLE) return process.env.STOKO_BACKEND_EXECUTABLE;
+
+  const executableName = process.platform === 'win32' ? 'stoko-backend.exe' : 'stoko-backend';
+  const packagedExecutable = path.join(process.resourcesPath, 'backend', executableName);
+  if (!isDev && fs.existsSync(packagedExecutable)) return packagedExecutable;
+
+  const devExecutable = path.join(projectRoot, 'backend', 'dist', 'stoko-backend', executableName);
+  if (fs.existsSync(devExecutable)) return devExecutable;
+
+  return null;
+}
+
 function resolvePythonCommand(backendDir) {
   if (process.env.STOKO_PYTHON) return process.env.STOKO_PYTHON;
 
@@ -85,28 +98,40 @@ function waitForBackend(url, timeoutMs = 20000) {
 
 async function startBackend() {
   const backendDir = resolveBackendDir();
-  const python = resolvePythonCommand(backendDir);
+  const backendExecutable = resolveBackendExecutable();
+  const python = backendExecutable ? null : resolvePythonCommand(backendDir);
+  if (!backendExecutable && !python) {
+    throw new Error('No se encontró backend empaquetado ni intérprete Python para iniciar la API local.');
+  }
   const userData = app.getPath('userData');
   const port = Number(process.env.STOKO_API_PORT) || await findFreePort();
   apiUrl = `http://127.0.0.1:${port}`;
 
-  backendProcess = spawn(python, [
-    '-m',
-    'uvicorn',
-    'app.main:app',
-    '--host',
-    '127.0.0.1',
-    '--port',
-    String(port),
-  ], {
-    cwd: backendDir,
-    env: {
-      ...process.env,
-      STOKO_DB_PATH: process.env.STOKO_DB_PATH || path.join(userData, 'stoko.db'),
-      STOKO_CONFIG_DIR: process.env.STOKO_CONFIG_DIR || userData,
+  backendProcess = spawn(
+    backendExecutable || python,
+    backendExecutable
+      ? []
+      : [
+          '-m',
+          'uvicorn',
+          'app.main:app',
+          '--host',
+          '127.0.0.1',
+          '--port',
+          String(port),
+        ],
+    {
+      cwd: backendExecutable ? path.dirname(backendExecutable) : backendDir,
+      env: {
+        ...process.env,
+        STOKO_API_HOST: '127.0.0.1',
+        STOKO_API_PORT: String(port),
+        STOKO_DB_PATH: process.env.STOKO_DB_PATH || path.join(userData, 'stoko.db'),
+        STOKO_CONFIG_DIR: process.env.STOKO_CONFIG_DIR || userData,
+      },
+      stdio: isDev ? 'inherit' : 'ignore',
     },
-    stdio: isDev ? 'inherit' : 'ignore',
-  });
+  );
 
   backendProcess.on('exit', (code) => {
     if (code !== 0 && mainWindow && !mainWindow.isDestroyed()) {

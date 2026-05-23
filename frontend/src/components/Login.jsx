@@ -162,7 +162,7 @@ export default function Login({ onLoginExitoso }) {
             </h2>
             <p className="text-gray-500 text-sm">
               {requiereSetup
-                ? 'Crea la primera cuenta para usar esta instalación local.'
+                ? 'Crea la primera cuenta de administrador.'
                 : modoSolicitud
                   ? 'Un administrador revisará tu solicitud y te asignará una contraseña temporal.'
                   : 'Ingresa tus credenciales para acceder al sistema.'}

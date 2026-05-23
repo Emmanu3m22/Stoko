@@ -45,11 +45,18 @@ def _crear_respuesta_token(usuario: models.Usuario) -> schemas.TokenResponse:
     )
 
 
+def _existe_admin_activo(db: Session) -> bool:
+    return db.query(models.Usuario).join(models.Rol).filter(
+        models.Usuario.activo == True,
+        models.Rol.nombre == "administrador",
+    ).first() is not None
+
+
 @router.get("/setup", response_model=schemas.SetupInicialStatus)
 def estado_setup_inicial(db: Session = Depends(get_db)):
     """Indica si esta instalación todavía necesita crear el primer administrador."""
     return schemas.SetupInicialStatus(
-        requiere_configuracion=db.query(models.Usuario).count() == 0,
+        requiere_configuracion=not _existe_admin_activo(db),
     )
 
 
@@ -59,10 +66,10 @@ def crear_setup_inicial(
     db: Session = Depends(get_db),
 ):
     """Crea el primer administrador de una instalación local nueva."""
-    if db.query(models.Usuario).count() > 0:
+    if _existe_admin_activo(db):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="La instalación ya tiene usuarios configurados.",
+            detail="La instalación ya tiene un administrador activo.",
         )
 
     rol_admin = _asegurar_roles_base(db)

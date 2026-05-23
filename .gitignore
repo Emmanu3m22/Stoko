@@ -31,11 +31,16 @@ venv.bak/
 .pytest_cache/
 .coverage
 htmlcov/
+.pyinstaller/
 
 # Database
 *.sqlite3
 *.db
 .stoko/
+backend/build/
+backend/dist/
+backend/*.spec
+desktop/release/
 
 # ========================
 # Frontend (React + Vite)
