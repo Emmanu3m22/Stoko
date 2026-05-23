@@ -35,6 +35,7 @@ htmlcov/
 # Database
 *.sqlite3
 *.db
+.stoko/
 
 # ========================
 # Frontend (React + Vite)
