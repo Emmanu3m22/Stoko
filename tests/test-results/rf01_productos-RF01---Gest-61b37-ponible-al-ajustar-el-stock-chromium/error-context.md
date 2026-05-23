@@ -1,0 +1,1929 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: rf01_productos.spec.ts >> RF01 - Gestion de productos >> CP-01-02: Actualiza la cantidad disponible al ajustar el stock
+- Location: e2e\rf01_productos.spec.ts:40:7
+
+# Error details
+
+```
+Test timeout of 45000ms exceeded.
+```
+
+```
+Error: locator.click: Test timeout of 45000ms exceeded.
+Call log:
+  - waiting for locator('tbody tr').filter({ hasText: 'Producto Sync-1779511002340-92n9k' }).first().locator('button').first()
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]: S
+      - generic [ref=e8]:
+        - text: STOKO
+        - paragraph [ref=e9]: Sistema POS
+    - navigation [ref=e10]:
+      - paragraph [ref=e11]: Principal
+      - button "Dashboard" [ref=e12]:
+        - img [ref=e14]
+        - text: Dashboard
+      - button "Catálogo" [active] [ref=e16]:
+        - img [ref=e18]
+        - text: Catálogo
+      - button "Módulo de Ventas" [ref=e21]:
+        - img [ref=e23]
+        - text: Módulo de Ventas
+      - button "Reportes" [ref=e25]:
+        - img [ref=e27]
+        - text: Reportes
+      - button "Configuración" [ref=e29]:
+        - img [ref=e31]
+        - text: Configuración
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e36]: A
+        - generic [ref=e37]:
+          - paragraph [ref=e38]: Admin e2e-admin-1779511001727-81cr3@example.com
+          - paragraph [ref=e39]: administrador
+      - button "Cerrar sesión" [ref=e40]:
+        - img [ref=e41]
+        - text: Cerrar sesión
+  - main [ref=e43]:
+    - generic [ref=e44]:
+      - paragraph [ref=e45]: Catálogo
+      - generic [ref=e47]: API conectada · localhost:8000
+    - generic [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - paragraph [ref=e53]: Catálogos de Sistema
+          - generic [ref=e54]:
+            - button "Productos" [ref=e55]
+            - generic [ref=e56]: /
+            - button "Categorías" [ref=e57]
+        - button "Nuevo Producto" [ref=e59]:
+          - img [ref=e60]
+          - text: Nuevo Producto
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - img [ref=e65]
+          - generic [ref=e67]:
+            - paragraph [ref=e68]: Total productos
+            - paragraph [ref=e69]: "100"
+        - generic [ref=e70]:
+          - img [ref=e72]
+          - generic [ref=e74]:
+            - paragraph [ref=e75]: Stock bajo
+            - paragraph [ref=e76]: "19"
+        - generic [ref=e77]:
+          - img [ref=e79]
+          - generic [ref=e81]:
+            - paragraph [ref=e82]: Valor inventario
+            - paragraph [ref=e83]: $706,700.00
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - paragraph [ref=e86]: 100 registros encontrados
+          - generic [ref=e87]:
+            - generic [ref=e88] [cursor=pointer]:
+              - checkbox "Solo stock bajo" [ref=e89]
+              - generic [ref=e90]: Solo stock bajo
+            - combobox [ref=e91]:
+              - option "Todas las categorías" [selected]
+              - option "Accesorios"
+              - option "Calzado Deportivo"
+              - option "Calzado Running"
+              - option "Cat Test 1779123158495 Mod"
+              - option "Cat Test 1779167175207 Mod"
+              - option "Cat Test 1779167366167 Mod"
+              - option "Cat Test 1779167464327 Mod"
+              - option "Categoria Busqueda-1779507472890-wrw8n"
+              - option "Categoria Busqueda-1779507586254-nhfm2"
+              - option "Categoria Busqueda-1779507679273-510lw"
+              - option "Categoria Busqueda-1779507800771-80e8t"
+              - option "Categoria Busqueda-1779507942853-zlihd"
+              - option "Categoria Busqueda-1779508132859-q1qrx"
+              - option "Categoria Busqueda-1779508602477-qpo1t"
+              - option "Categoria Busqueda-1779510007722-qwk5s"
+              - option "Categoria CP02-1779507577821-bo2ep Editada"
+              - option "Categoria CP02-1779507671386-8w44g Editada"
+              - option "Categoria CP02-1779507793438-lhuge Editada"
+              - option "Categoria CP02-1779508602750-6x72f Editada"
+              - option "Categoria CP02-1779510008506-o7pcg Editada"
+              - option "Categoria CP02-1779510870110-8nha0 Editada"
+              - option "Categoria E2E-1779507451684-k0jbn"
+              - option "Categoria E2E-1779507455901-ig3tk"
+              - option "Categoria E2E-1779507460407-i9t4r"
+              - option "Categoria E2E-1779507480572-cq4sg"
+              - option "Categoria E2E-1779507484261-dq05y"
+              - option "Categoria E2E-1779507487967-x4qtg"
+              - option "Categoria E2E-1779507492176-t2kl4"
+              - option "Categoria E2E-1779507496609-2nczy"
+              - option "Categoria E2E-1779507501648-k9ytd"
+              - option "Categoria E2E-1779507506247-fm6s7"
+              - option "Categoria E2E-1779507510034-ayj4a"
+              - option "Categoria E2E-1779507513714-7ahbc"
+              - option "Categoria E2E-1779507517527-adb9m"
+              - option "Categoria E2E-1779507557086-3661u"
+              - option "Categoria E2E-1779507568485-jyiin"
+              - option "Categoria E2E-1779507573304-c0bdw"
+              - option "Categoria E2E-1779507589896-9g1lk"
+              - option "Categoria E2E-1779507593776-265y3"
+              - option "Categoria E2E-1779507597473-b5zyp"
+              - option "Categoria E2E-1779507631498-e2nzg"
+              - option "Categoria E2E-1779507636996-2ud48"
+              - option "Categoria E2E-1779507640968-yxkk6"
+              - option "Categoria E2E-1779507660244-ipsqs"
+              - option "Categoria E2E-1779507664369-6pbvu"
+              - option "Categoria E2E-1779507667908-wdxd1"
+              - option "Categoria E2E-1779507686167-od743"
+              - option "Categoria E2E-1779507689599-pdqgh"
+              - option "Categoria E2E-1779507693111-7afx7"
+              - option "Categoria E2E-1779507697108-ukqub"
+              - option "Categoria E2E-1779507701487-cvjxi"
+              - option "Categoria E2E-1779507705666-4732r"
+              - option "Categoria E2E-1779507709748-xouj1"
+              - option "Categoria E2E-1779507713506-5pdl2"
+              - option "Categoria E2E-1779507717029-o3f8w"
+              - option "Categoria E2E-1779507726961-p7ci5"
+              - option "Categoria E2E-1779507759063-hinhb"
+              - option "Categoria E2E-1779507777760-nly0u"
+              - option "Categoria E2E-1779507783695-4aun0"
+              - option "Categoria E2E-1779507788376-nvzzh"
+              - option "Categoria E2E-1779507807532-pggjr"
+              - option "Categoria E2E-1779507811080-ltf6i"
+              - option "Categoria E2E-1779507814720-3veai"
+              - option "Categoria E2E-1779507818759-4u7j1"
+              - option "Categoria E2E-1779507822564-sl0mj"
+              - option "Categoria E2E-1779507827248-vspcw"
+              - option "Categoria E2E-1779507831379-gfu7d"
+              - option "Categoria E2E-1779507835284-ta0a9"
+              - option "Categoria E2E-1779507839046-43ax6"
+              - option "Categoria E2E-1779507842811-1u6xo"
+              - option "Categoria E2E-1779507942839-z2sjj"
+              - option "Categoria E2E-1779507942996-q26nk"
+              - option "Categoria E2E-1779507943152-rz1yt"
+              - option "Categoria E2E-1779507946418-w784z"
+              - option "Categoria E2E-1779507946435-8d4ie"
+              - option "Categoria E2E-1779507946733-5iqfj"
+              - option "Categoria E2E-1779507946757-oz3at"
+              - option "Categoria E2E-1779507946872-esptl"
+              - option "Categoria E2E-1779507949907-0nbfn"
+              - option "Categoria E2E-1779507949917-taj5k"
+              - option "Categoria E2E-1779507950254-m265b"
+              - option "Categoria E2E-1779507950275-6vvmx"
+              - option "Categoria E2E-1779507950580-gyuhu"
+              - option "Categoria E2E-1779508132800-gm1oo"
+              - option "Categoria E2E-1779508132984-bt8u9"
+              - option "Categoria E2E-1779508133111-xcrih"
+              - option "Categoria E2E-1779508136165-0pdow"
+              - option "Categoria E2E-1779508136236-09rwu"
+              - option "Categoria E2E-1779508136361-a94mf"
+              - option "Categoria E2E-1779508136823-qhyrb"
+              - option "Categoria E2E-1779508136834-aiqgf"
+              - option "Categoria E2E-1779508139946-3t9jo"
+              - option "Categoria E2E-1779508140118-ttfth"
+              - option "Categoria E2E-1779508140161-cgurf"
+              - option "Categoria E2E-1779508140792-jkbkr"
+              - option "Categoria E2E-1779508140834-0f8wv"
+              - option "Categoria E2E-1779508351565-b8ceb"
+              - option "Categoria E2E-1779508353835-uerzt"
+              - option "Categoria E2E-1779508356148-oy0kz"
+              - option "Categoria E2E-1779508472415-cmc40"
+              - option "Categoria E2E-1779508480375-7j29q"
+              - option "Categoria E2E-1779508484757-9fu3u"
+              - option "Categoria E2E-1779508505623-oko1y"
+              - option "Categoria E2E-1779508513482-ulgob"
+              - option "Categoria E2E-1779508518326-18cdb"
+              - option "Categoria E2E-1779508581743-i9e5t"
+              - option "Categoria E2E-1779508585446-asgf5"
+              - option "Categoria E2E-1779508588348-2jowi"
+              - option "Categoria E2E-1779508602551-6erca"
+              - option "Categoria E2E-1779508602564-tqqlg"
+              - option "Categoria E2E-1779508602673-i7wi5"
+              - option "Categoria E2E-1779508605850-hqq9o"
+              - option "Categoria E2E-1779508606781-4ehr2"
+              - option "Categoria E2E-1779508607125-h1aig"
+              - option "Categoria E2E-1779508607602-fbhao"
+              - option "Categoria E2E-1779508609333-9n4qk"
+              - option "Categoria E2E-1779508611364-1t0bg"
+              - option "Categoria E2E-1779508611411-brdic"
+              - option "Categoria E2E-1779508611800-sd7uv"
+              - option "Categoria E2E-1779508633122-a8dcb"
+              - option "Categoria E2E-1779508642118-xsvvw"
+              - option "Categoria E2E-1779510007865-71zwc"
+              - option "Categoria E2E-1779510008162-arp3e"
+              - option "Categoria E2E-1779510008418-2qkjp"
+              - option "Categoria E2E-1779510014683-tt8hj"
+              - option "Categoria E2E-1779510015682-qiujp"
+              - option "Categoria E2E-1779510016115-2cgq5"
+              - option "Categoria E2E-1779510016589-z08cq"
+              - option "Categoria E2E-1779510018871-sruqr"
+              - option "Categoria E2E-1779510020869-svkum"
+              - option "Categoria E2E-1779510021153-jxe6x"
+              - option "Categoria E2E-1779510022234-hcyyk"
+              - option "Categoria E2E-1779510026228-tc5at"
+              - option "Categoria E2E-1779510049467-d5lmr"
+              - option "Categoria E2E-1779510130537-qizlb"
+              - option "Categoria E2E-1779510141110-nywfr"
+              - option "Categoria E2E-1779510171708-9uhsz"
+              - option "Categoria E2E-1779510508824-jx3jf"
+              - option "Categoria E2E-1779510512803-cyma0"
+              - option "Categoria E2E-1779510559062-o3p81"
+              - option "Categoria E2E-1779510998685-v8lnb"
+              - option "Categoria E2E-1779511002320-yi9zv"
+              - option "General"
+              - option "Relojería"
+              - option "Óptica"
+            - generic [ref=e92]:
+              - img [ref=e93]
+              - textbox "Buscar por nombre o código…" [ref=e95]
+        - table [ref=e97]:
+          - rowgroup [ref=e98]:
+            - row "Producto Categoría Precio Stock Código Acciones" [ref=e99]:
+              - columnheader "Producto" [ref=e100]
+              - columnheader "Categoría" [ref=e101]
+              - columnheader "Precio" [ref=e102]
+              - columnheader "Stock" [ref=e103]
+              - columnheader "Código" [ref=e104]
+              - columnheader "Acciones" [ref=e105]
+          - rowgroup [ref=e106]:
+            - 'row "Gafas Polarizadas Onyx ID: 0003 Óptica $890.00 500 STK-0051-C" [ref=e107]':
+              - 'cell "Gafas Polarizadas Onyx ID: 0003" [ref=e108]':
+                - paragraph [ref=e109]: Gafas Polarizadas Onyx
+                - paragraph [ref=e110]: "ID: 0003"
+              - cell "Óptica" [ref=e111]
+              - cell "$890.00" [ref=e112]
+              - cell "500" [ref=e113]:
+                - generic [ref=e115]: "500"
+              - cell "STK-0051-C" [ref=e116]
+              - cell [ref=e117]:
+                - generic [ref=e118]:
+                  - button [ref=e119]:
+                    - img [ref=e120]
+                  - button [ref=e122]:
+                    - img [ref=e123]
+            - 'row "Gansito ID: 0006 General $18.00 0 Stock bajo 1256458787973424" [ref=e125]':
+              - 'cell "Gansito ID: 0006" [ref=e126]':
+                - paragraph [ref=e127]: Gansito
+                - paragraph [ref=e128]: "ID: 0006"
+              - cell "General" [ref=e129]
+              - cell "$18.00" [ref=e130]
+              - cell "0 Stock bajo" [ref=e131]:
+                - generic [ref=e132]:
+                  - generic [ref=e133]: "0"
+                  - generic "Stock bajo" [ref=e134]
+              - cell "1256458787973424" [ref=e135]
+              - cell [ref=e136]:
+                - generic [ref=e137]:
+                  - button [ref=e138]:
+                    - img [ref=e139]
+                  - button [ref=e141]:
+                    - img [ref=e142]
+            - 'row "Producto Alerta-1779507460432-4muqk ID: 0009 Categoria E2E-1779507460407-i9t4r $100.00 20 CODE-1779507460432-byqyt" [ref=e144]':
+              - 'cell "Producto Alerta-1779507460432-4muqk ID: 0009" [ref=e145]':
+                - paragraph [ref=e146]: Producto Alerta-1779507460432-4muqk
+                - paragraph [ref=e147]: "ID: 0009"
+              - cell "Categoria E2E-1779507460407-i9t4r" [ref=e148]
+              - cell "$100.00" [ref=e149]
+              - cell "20" [ref=e150]:
+                - generic [ref=e152]: "20"
+              - cell "CODE-1779507460432-byqyt" [ref=e153]
+              - cell [ref=e154]:
+                - generic [ref=e155]:
+                  - button [ref=e156]:
+                    - img [ref=e157]
+                  - button [ref=e159]:
+                    - img [ref=e160]
+            - 'row "Producto Alerta-1779507573337-ihcf0 ID: 0023 Categoria E2E-1779507573304-c0bdw $100.00 9 Stock bajo CODE-1779507573337-s5esr" [ref=e162]':
+              - 'cell "Producto Alerta-1779507573337-ihcf0 ID: 0023" [ref=e163]':
+                - paragraph [ref=e164]: Producto Alerta-1779507573337-ihcf0
+                - paragraph [ref=e165]: "ID: 0023"
+              - cell "Categoria E2E-1779507573304-c0bdw" [ref=e166]
+              - cell "$100.00" [ref=e167]
+              - cell "9 Stock bajo" [ref=e168]:
+                - generic [ref=e169]:
+                  - generic [ref=e170]: "9"
+                  - generic "Stock bajo" [ref=e171]
+              - cell "CODE-1779507573337-s5esr" [ref=e172]
+              - cell [ref=e173]:
+                - generic [ref=e174]:
+                  - button [ref=e175]:
+                    - img [ref=e176]
+                  - button [ref=e178]:
+                    - img [ref=e179]
+            - 'row "Producto Alerta-1779507640995-md2q3 ID: 0030 Categoria E2E-1779507640968-yxkk6 $100.00 9 Stock bajo CODE-1779507640995-a7t49" [ref=e181]':
+              - 'cell "Producto Alerta-1779507640995-md2q3 ID: 0030" [ref=e182]':
+                - paragraph [ref=e183]: Producto Alerta-1779507640995-md2q3
+                - paragraph [ref=e184]: "ID: 0030"
+              - cell "Categoria E2E-1779507640968-yxkk6" [ref=e185]
+              - cell "$100.00" [ref=e186]
+              - cell "9 Stock bajo" [ref=e187]:
+                - generic [ref=e188]:
+                  - generic [ref=e189]: "9"
+                  - generic "Stock bajo" [ref=e190]
+              - cell "CODE-1779507640995-a7t49" [ref=e191]
+              - cell [ref=e192]:
+                - generic [ref=e193]:
+                  - button [ref=e194]:
+                    - img [ref=e195]
+                  - button [ref=e197]:
+                    - img [ref=e198]
+            - 'row "Producto Alerta-1779507667933-xki81 ID: 0033 Categoria E2E-1779507667908-wdxd1 $100.00 9 Stock bajo CODE-1779507667933-tg273" [ref=e200]':
+              - 'cell "Producto Alerta-1779507667933-xki81 ID: 0033" [ref=e201]':
+                - paragraph [ref=e202]: Producto Alerta-1779507667933-xki81
+                - paragraph [ref=e203]: "ID: 0033"
+              - cell "Categoria E2E-1779507667908-wdxd1" [ref=e204]
+              - cell "$100.00" [ref=e205]
+              - cell "9 Stock bajo" [ref=e206]:
+                - generic [ref=e207]:
+                  - generic [ref=e208]: "9"
+                  - generic "Stock bajo" [ref=e209]
+              - cell "CODE-1779507667933-tg273" [ref=e210]
+              - cell [ref=e211]:
+                - generic [ref=e212]:
+                  - button [ref=e213]:
+                    - img [ref=e214]
+                  - button [ref=e216]:
+                    - img [ref=e217]
+            - 'row "Producto Alerta-1779507788404-3euir ID: 0048 Categoria E2E-1779507788376-nvzzh $100.00 9 Stock bajo CODE-1779507788404-5jm9w" [ref=e219]':
+              - 'cell "Producto Alerta-1779507788404-3euir ID: 0048" [ref=e220]':
+                - paragraph [ref=e221]: Producto Alerta-1779507788404-3euir
+                - paragraph [ref=e222]: "ID: 0048"
+              - cell "Categoria E2E-1779507788376-nvzzh" [ref=e223]
+              - cell "$100.00" [ref=e224]
+              - cell "9 Stock bajo" [ref=e225]:
+                - generic [ref=e226]:
+                  - generic [ref=e227]: "9"
+                  - generic "Stock bajo" [ref=e228]
+              - cell "CODE-1779507788404-5jm9w" [ref=e229]
+              - cell [ref=e230]:
+                - generic [ref=e231]:
+                  - button [ref=e232]:
+                    - img [ref=e233]
+                  - button [ref=e235]:
+                    - img [ref=e236]
+            - 'row "Producto Alerta-1779507950302-pqyq6 ID: 0071 Categoria E2E-1779507950254-m265b $100.00 20 CODE-1779507950302-qnqis" [ref=e238]':
+              - 'cell "Producto Alerta-1779507950302-pqyq6 ID: 0071" [ref=e239]':
+                - paragraph [ref=e240]: Producto Alerta-1779507950302-pqyq6
+                - paragraph [ref=e241]: "ID: 0071"
+              - cell "Categoria E2E-1779507950254-m265b" [ref=e242]
+              - cell "$100.00" [ref=e243]
+              - cell "20" [ref=e244]:
+                - generic [ref=e246]: "20"
+              - cell "CODE-1779507950302-qnqis" [ref=e247]
+              - cell [ref=e248]:
+                - generic [ref=e249]:
+                  - button [ref=e250]:
+                    - img [ref=e251]
+                  - button [ref=e253]:
+                    - img [ref=e254]
+            - 'row "Producto Alerta-1779508140813-vr51t ID: 0084 Categoria E2E-1779508140792-jkbkr $100.00 20 CODE-1779508140813-f4geg" [ref=e256]':
+              - 'cell "Producto Alerta-1779508140813-vr51t ID: 0084" [ref=e257]':
+                - paragraph [ref=e258]: Producto Alerta-1779508140813-vr51t
+                - paragraph [ref=e259]: "ID: 0084"
+              - cell "Categoria E2E-1779508140792-jkbkr" [ref=e260]
+              - cell "$100.00" [ref=e261]
+              - cell "20" [ref=e262]:
+                - generic [ref=e264]: "20"
+              - cell "CODE-1779508140813-f4geg" [ref=e265]
+              - cell [ref=e266]:
+                - generic [ref=e267]:
+                  - button [ref=e268]:
+                    - img [ref=e269]
+                  - button [ref=e271]:
+                    - img [ref=e272]
+            - 'row "Producto Alerta-1779508356163-vwkl4 ID: 0087 Categoria E2E-1779508356148-oy0kz $100.00 20 CODE-1779508356164-r3wam" [ref=e274]':
+              - 'cell "Producto Alerta-1779508356163-vwkl4 ID: 0087" [ref=e275]':
+                - paragraph [ref=e276]: Producto Alerta-1779508356163-vwkl4
+                - paragraph [ref=e277]: "ID: 0087"
+              - cell "Categoria E2E-1779508356148-oy0kz" [ref=e278]
+              - cell "$100.00" [ref=e279]
+              - cell "20" [ref=e280]:
+                - generic [ref=e282]: "20"
+              - cell "CODE-1779508356164-r3wam" [ref=e283]
+              - cell [ref=e284]:
+                - generic [ref=e285]:
+                  - button [ref=e286]:
+                    - img [ref=e287]
+                  - button [ref=e289]:
+                    - img [ref=e290]
+            - 'row "Producto Alerta-1779508484786-wc8zx ID: 0090 Categoria E2E-1779508484757-9fu3u $100.00 9 Stock bajo CODE-1779508484786-qg1iu" [ref=e292]':
+              - 'cell "Producto Alerta-1779508484786-wc8zx ID: 0090" [ref=e293]':
+                - paragraph [ref=e294]: Producto Alerta-1779508484786-wc8zx
+                - paragraph [ref=e295]: "ID: 0090"
+              - cell "Categoria E2E-1779508484757-9fu3u" [ref=e296]
+              - cell "$100.00" [ref=e297]
+              - cell "9 Stock bajo" [ref=e298]:
+                - generic [ref=e299]:
+                  - generic [ref=e300]: "9"
+                  - generic "Stock bajo" [ref=e301]
+              - cell "CODE-1779508484786-qg1iu" [ref=e302]
+              - cell [ref=e303]:
+                - generic [ref=e304]:
+                  - button [ref=e305]:
+                    - img [ref=e306]
+                  - button [ref=e308]:
+                    - img [ref=e309]
+            - 'row "Producto Alerta-1779508518354-ha8w0 ID: 0093 Categoria E2E-1779508518326-18cdb $100.00 9 Stock bajo CODE-1779508518354-8l03j" [ref=e311]':
+              - 'cell "Producto Alerta-1779508518354-ha8w0 ID: 0093" [ref=e312]':
+                - paragraph [ref=e313]: Producto Alerta-1779508518354-ha8w0
+                - paragraph [ref=e314]: "ID: 0093"
+              - cell "Categoria E2E-1779508518326-18cdb" [ref=e315]
+              - cell "$100.00" [ref=e316]
+              - cell "9 Stock bajo" [ref=e317]:
+                - generic [ref=e318]:
+                  - generic [ref=e319]: "9"
+                  - generic "Stock bajo" [ref=e320]
+              - cell "CODE-1779508518354-8l03j" [ref=e321]
+              - cell [ref=e322]:
+                - generic [ref=e323]:
+                  - button [ref=e324]:
+                    - img [ref=e325]
+                  - button [ref=e327]:
+                    - img [ref=e328]
+            - 'row "Producto Alerta-1779508588366-r5kck ID: 0096 Categoria E2E-1779508588348-2jowi $100.00 9 Stock bajo CODE-1779508588366-9zqhr" [ref=e330]':
+              - 'cell "Producto Alerta-1779508588366-r5kck ID: 0096" [ref=e331]':
+                - paragraph [ref=e332]: Producto Alerta-1779508588366-r5kck
+                - paragraph [ref=e333]: "ID: 0096"
+              - cell "Categoria E2E-1779508588348-2jowi" [ref=e334]
+              - cell "$100.00" [ref=e335]
+              - cell "9 Stock bajo" [ref=e336]:
+                - generic [ref=e337]:
+                  - generic [ref=e338]: "9"
+                  - generic "Stock bajo" [ref=e339]
+              - cell "CODE-1779508588366-9zqhr" [ref=e340]
+              - cell [ref=e341]:
+                - generic [ref=e342]:
+                  - button [ref=e343]:
+                    - img [ref=e344]
+                  - button [ref=e346]:
+                    - img [ref=e347]
+            - 'row "Producto Alerta-1779508642133-632yv ID: 0110 Categoria E2E-1779508642118-xsvvw $100.00 9 Stock bajo CODE-1779508642133-4txwu" [ref=e349]':
+              - 'cell "Producto Alerta-1779508642133-632yv ID: 0110" [ref=e350]':
+                - paragraph [ref=e351]: Producto Alerta-1779508642133-632yv
+                - paragraph [ref=e352]: "ID: 0110"
+              - cell "Categoria E2E-1779508642118-xsvvw" [ref=e353]
+              - cell "$100.00" [ref=e354]
+              - cell "9 Stock bajo" [ref=e355]:
+                - generic [ref=e356]:
+                  - generic [ref=e357]: "9"
+                  - generic "Stock bajo" [ref=e358]
+              - cell "CODE-1779508642133-4txwu" [ref=e359]
+              - cell [ref=e360]:
+                - generic [ref=e361]:
+                  - button [ref=e362]:
+                    - img [ref=e363]
+                  - button [ref=e365]:
+                    - img [ref=e366]
+            - 'row "Producto Alerta-1779510049497-ynmjn ID: 0124 Categoria E2E-1779510049467-d5lmr $100.00 9 Stock bajo CODE-1779510049497-gm6ic" [ref=e368]':
+              - 'cell "Producto Alerta-1779510049497-ynmjn ID: 0124" [ref=e369]':
+                - paragraph [ref=e370]: Producto Alerta-1779510049497-ynmjn
+                - paragraph [ref=e371]: "ID: 0124"
+              - cell "Categoria E2E-1779510049467-d5lmr" [ref=e372]
+              - cell "$100.00" [ref=e373]
+              - cell "9 Stock bajo" [ref=e374]:
+                - generic [ref=e375]:
+                  - generic [ref=e376]: "9"
+                  - generic "Stock bajo" [ref=e377]
+              - cell "CODE-1779510049497-gm6ic" [ref=e378]
+              - cell [ref=e379]:
+                - generic [ref=e380]:
+                  - button [ref=e381]:
+                    - img [ref=e382]
+                  - button [ref=e384]:
+                    - img [ref=e385]
+            - 'row "Producto Alerta-1779510171723-6pond ID: 0127 Categoria E2E-1779510171708-9uhsz $100.00 9 Stock bajo CODE-1779510171723-oglnc" [ref=e387]':
+              - 'cell "Producto Alerta-1779510171723-6pond ID: 0127" [ref=e388]':
+                - paragraph [ref=e389]: Producto Alerta-1779510171723-6pond
+                - paragraph [ref=e390]: "ID: 0127"
+              - cell "Categoria E2E-1779510171708-9uhsz" [ref=e391]
+              - cell "$100.00" [ref=e392]
+              - cell "9 Stock bajo" [ref=e393]:
+                - generic [ref=e394]:
+                  - generic [ref=e395]: "9"
+                  - generic "Stock bajo" [ref=e396]
+              - cell "CODE-1779510171723-oglnc" [ref=e397]
+              - cell [ref=e398]:
+                - generic [ref=e399]:
+                  - button [ref=e400]:
+                    - img [ref=e401]
+                  - button [ref=e403]:
+                    - img [ref=e404]
+            - 'row "Producto Alerta-1779510559078-3k5od ID: 0130 Categoria E2E-1779510559062-o3p81 $100.00 9 Stock bajo CODE-1779510559078-9rbnx" [ref=e406]':
+              - 'cell "Producto Alerta-1779510559078-3k5od ID: 0130" [ref=e407]':
+                - paragraph [ref=e408]: Producto Alerta-1779510559078-3k5od
+                - paragraph [ref=e409]: "ID: 0130"
+              - cell "Categoria E2E-1779510559062-o3p81" [ref=e410]
+              - cell "$100.00" [ref=e411]
+              - cell "9 Stock bajo" [ref=e412]:
+                - generic [ref=e413]:
+                  - generic [ref=e414]: "9"
+                  - generic "Stock bajo" [ref=e415]
+              - cell "CODE-1779510559078-9rbnx" [ref=e416]
+              - cell [ref=e417]:
+                - generic [ref=e418]:
+                  - button [ref=e419]:
+                    - img [ref=e420]
+                  - button [ref=e422]:
+                    - img [ref=e423]
+            - 'row "Producto Anulacion-1779507487967-1g7hz ID: 0013 Categoria E2E-1779507487967-x4qtg $100.00 10 CODE-1779507487993-4v33o" [ref=e425]':
+              - 'cell "Producto Anulacion-1779507487967-1g7hz ID: 0013" [ref=e426]':
+                - paragraph [ref=e427]: Producto Anulacion-1779507487967-1g7hz
+                - paragraph [ref=e428]: "ID: 0013"
+              - cell "Categoria E2E-1779507487967-x4qtg" [ref=e429]
+              - cell "$100.00" [ref=e430]
+              - cell "10" [ref=e431]:
+                - generic [ref=e433]: "10"
+              - cell "CODE-1779507487993-4v33o" [ref=e434]
+              - cell [ref=e435]:
+                - generic [ref=e436]:
+                  - button [ref=e437]:
+                    - img [ref=e438]
+                  - button [ref=e440]:
+                    - img [ref=e441]
+            - 'row "Producto Anulacion-1779507693111-oovh1 ID: 0037 Categoria E2E-1779507693111-7afx7 $100.00 10 CODE-1779507693138-calf4" [ref=e443]':
+              - 'cell "Producto Anulacion-1779507693111-oovh1 ID: 0037" [ref=e444]':
+                - paragraph [ref=e445]: Producto Anulacion-1779507693111-oovh1
+                - paragraph [ref=e446]: "ID: 0037"
+              - cell "Categoria E2E-1779507693111-7afx7" [ref=e447]
+              - cell "$100.00" [ref=e448]
+              - cell "10" [ref=e449]:
+                - generic [ref=e451]: "10"
+              - cell "CODE-1779507693138-calf4" [ref=e452]
+              - cell [ref=e453]:
+                - generic [ref=e454]:
+                  - button [ref=e455]:
+                    - img [ref=e456]
+                  - button [ref=e458]:
+                    - img [ref=e459]
+            - 'row "Producto Anulacion-1779507814720-nhzdj ID: 0052 Categoria E2E-1779507814720-3veai $100.00 10 CODE-1779507814746-dl5iz" [ref=e461]':
+              - 'cell "Producto Anulacion-1779507814720-nhzdj ID: 0052" [ref=e462]':
+                - paragraph [ref=e463]: Producto Anulacion-1779507814720-nhzdj
+                - paragraph [ref=e464]: "ID: 0052"
+              - cell "Categoria E2E-1779507814720-3veai" [ref=e465]
+              - cell "$100.00" [ref=e466]
+              - cell "10" [ref=e467]:
+                - generic [ref=e469]: "10"
+              - cell "CODE-1779507814746-dl5iz" [ref=e470]
+              - cell [ref=e471]:
+                - generic [ref=e472]:
+                  - button [ref=e473]:
+                    - img [ref=e474]
+                  - button [ref=e476]:
+                    - img [ref=e477]
+            - 'row "Producto Anulacion-1779507942995-89quw ID: 0062 Categoria E2E-1779507942996-q26nk $100.00 8 CODE-1779507943089-lfzxv" [ref=e479]':
+              - 'cell "Producto Anulacion-1779507942995-89quw ID: 0062" [ref=e480]':
+                - paragraph [ref=e481]: Producto Anulacion-1779507942995-89quw
+                - paragraph [ref=e482]: "ID: 0062"
+              - cell "Categoria E2E-1779507942996-q26nk" [ref=e483]
+              - cell "$100.00" [ref=e484]
+              - cell "8" [ref=e485]:
+                - generic [ref=e487]: "8"
+              - cell "CODE-1779507943089-lfzxv" [ref=e488]
+              - cell [ref=e489]:
+                - generic [ref=e490]:
+                  - button [ref=e491]:
+                    - img [ref=e492]
+                  - button [ref=e494]:
+                    - img [ref=e495]
+            - 'row "Producto Anulacion-1779508132984-n5t3i ID: 0075 Categoria E2E-1779508132984-bt8u9 $100.00 8 CODE-1779508133008-v9jio" [ref=e497]':
+              - 'cell "Producto Anulacion-1779508132984-n5t3i ID: 0075" [ref=e498]':
+                - paragraph [ref=e499]: Producto Anulacion-1779508132984-n5t3i
+                - paragraph [ref=e500]: "ID: 0075"
+              - cell "Categoria E2E-1779508132984-bt8u9" [ref=e501]
+              - cell "$100.00" [ref=e502]
+              - cell "8" [ref=e503]:
+                - generic [ref=e505]: "8"
+              - cell "CODE-1779508133008-v9jio" [ref=e506]
+              - cell [ref=e507]:
+                - generic [ref=e508]:
+                  - button [ref=e509]:
+                    - img [ref=e510]
+                  - button [ref=e512]:
+                    - img [ref=e513]
+            - 'row "Producto Anulacion-1779508602673-ps0r0 ID: 0099 Categoria E2E-1779508602673-i7wi5 $100.00 10 CODE-1779508602725-dl12p" [ref=e515]':
+              - 'cell "Producto Anulacion-1779508602673-ps0r0 ID: 0099" [ref=e516]':
+                - paragraph [ref=e517]: Producto Anulacion-1779508602673-ps0r0
+                - paragraph [ref=e518]: "ID: 0099"
+              - cell "Categoria E2E-1779508602673-i7wi5" [ref=e519]
+              - cell "$100.00" [ref=e520]
+              - cell "10" [ref=e521]:
+                - generic [ref=e523]: "10"
+              - cell "CODE-1779508602725-dl12p" [ref=e524]
+              - cell [ref=e525]:
+                - generic [ref=e526]:
+                  - button [ref=e527]:
+                    - img [ref=e528]
+                  - button [ref=e530]:
+                    - img [ref=e531]
+            - 'row "Producto Anulacion-1779510008417-cgmdw ID: 0113 Categoria E2E-1779510008418-2qkjp $100.00 10 CODE-1779510008945-f1uvo" [ref=e533]':
+              - 'cell "Producto Anulacion-1779510008417-cgmdw ID: 0113" [ref=e534]':
+                - paragraph [ref=e535]: Producto Anulacion-1779510008417-cgmdw
+                - paragraph [ref=e536]: "ID: 0113"
+              - cell "Categoria E2E-1779510008418-2qkjp" [ref=e537]
+              - cell "$100.00" [ref=e538]
+              - cell "10" [ref=e539]:
+                - generic [ref=e541]: "10"
+              - cell "CODE-1779510008945-f1uvo" [ref=e542]
+              - cell [ref=e543]:
+                - generic [ref=e544]:
+                  - button [ref=e545]:
+                    - img [ref=e546]
+                  - button [ref=e548]:
+                    - img [ref=e549]
+            - 'row "Producto Busqueda-1779507472924-nzk1i ID: 0010 Categoria Busqueda-1779507472890-wrw8n $100.00 12 BUSQ-1779507472924-4ygnc" [ref=e551]':
+              - 'cell "Producto Busqueda-1779507472924-nzk1i ID: 0010" [ref=e552]':
+                - paragraph [ref=e553]: Producto Busqueda-1779507472924-nzk1i
+                - paragraph [ref=e554]: "ID: 0010"
+              - cell "Categoria Busqueda-1779507472890-wrw8n" [ref=e555]
+              - cell "$100.00" [ref=e556]
+              - cell "12" [ref=e557]:
+                - generic [ref=e559]: "12"
+              - cell "BUSQ-1779507472924-4ygnc" [ref=e560]
+              - cell [ref=e561]:
+                - generic [ref=e562]:
+                  - button [ref=e563]:
+                    - img [ref=e564]
+                  - button [ref=e566]:
+                    - img [ref=e567]
+            - 'row "Producto Busqueda-1779507586281-dr761 ID: 0024 Categoria Busqueda-1779507586254-nhfm2 $100.00 12 BUSQ-1779507586281-evfk6" [ref=e569]':
+              - 'cell "Producto Busqueda-1779507586281-dr761 ID: 0024" [ref=e570]':
+                - paragraph [ref=e571]: Producto Busqueda-1779507586281-dr761
+                - paragraph [ref=e572]: "ID: 0024"
+              - cell "Categoria Busqueda-1779507586254-nhfm2" [ref=e573]
+              - cell "$100.00" [ref=e574]
+              - cell "12" [ref=e575]:
+                - generic [ref=e577]: "12"
+              - cell "BUSQ-1779507586281-evfk6" [ref=e578]
+              - cell [ref=e579]:
+                - generic [ref=e580]:
+                  - button [ref=e581]:
+                    - img [ref=e582]
+                  - button [ref=e584]:
+                    - img [ref=e585]
+            - 'row "Producto Busqueda-1779507679297-5srxk ID: 0034 Categoria Busqueda-1779507679273-510lw $100.00 12 BUSQ-1779507679297-dlfpp" [ref=e587]':
+              - 'cell "Producto Busqueda-1779507679297-5srxk ID: 0034" [ref=e588]':
+                - paragraph [ref=e589]: Producto Busqueda-1779507679297-5srxk
+                - paragraph [ref=e590]: "ID: 0034"
+              - cell "Categoria Busqueda-1779507679273-510lw" [ref=e591]
+              - cell "$100.00" [ref=e592]
+              - cell "12" [ref=e593]:
+                - generic [ref=e595]: "12"
+              - cell "BUSQ-1779507679297-dlfpp" [ref=e596]
+              - cell [ref=e597]:
+                - generic [ref=e598]:
+                  - button [ref=e599]:
+                    - img [ref=e600]
+                  - button [ref=e602]:
+                    - img [ref=e603]
+            - 'row "Producto Busqueda-1779507800798-nf6vu ID: 0049 Categoria Busqueda-1779507800771-80e8t $100.00 12 BUSQ-1779507800798-5jwm5" [ref=e605]':
+              - 'cell "Producto Busqueda-1779507800798-nf6vu ID: 0049" [ref=e606]':
+                - paragraph [ref=e607]: Producto Busqueda-1779507800798-nf6vu
+                - paragraph [ref=e608]: "ID: 0049"
+              - cell "Categoria Busqueda-1779507800771-80e8t" [ref=e609]
+              - cell "$100.00" [ref=e610]
+              - cell "12" [ref=e611]:
+                - generic [ref=e613]: "12"
+              - cell "BUSQ-1779507800798-5jwm5" [ref=e614]
+              - cell [ref=e615]:
+                - generic [ref=e616]:
+                  - button [ref=e617]:
+                    - img [ref=e618]
+                  - button [ref=e620]:
+                    - img [ref=e621]
+            - 'row "Producto Busqueda-1779507942881-xsm75 ID: 0061 Categoria Busqueda-1779507942853-zlihd $100.00 12 BUSQ-1779507942881-662a8" [ref=e623]':
+              - 'cell "Producto Busqueda-1779507942881-xsm75 ID: 0061" [ref=e624]':
+                - paragraph [ref=e625]: Producto Busqueda-1779507942881-xsm75
+                - paragraph [ref=e626]: "ID: 0061"
+              - cell "Categoria Busqueda-1779507942853-zlihd" [ref=e627]
+              - cell "$100.00" [ref=e628]
+              - cell "12" [ref=e629]:
+                - generic [ref=e631]: "12"
+              - cell "BUSQ-1779507942881-662a8" [ref=e632]
+              - cell [ref=e633]:
+                - generic [ref=e634]:
+                  - button [ref=e635]:
+                    - img [ref=e636]
+                  - button [ref=e638]:
+                    - img [ref=e639]
+            - 'row "Producto Busqueda-1779508132900-x1cbo ID: 0074 Categoria Busqueda-1779508132859-q1qrx $100.00 12 BUSQ-1779508132900-06mhy" [ref=e641]':
+              - 'cell "Producto Busqueda-1779508132900-x1cbo ID: 0074" [ref=e642]':
+                - paragraph [ref=e643]: Producto Busqueda-1779508132900-x1cbo
+                - paragraph [ref=e644]: "ID: 0074"
+              - cell "Categoria Busqueda-1779508132859-q1qrx" [ref=e645]
+              - cell "$100.00" [ref=e646]
+              - cell "12" [ref=e647]:
+                - generic [ref=e649]: "12"
+              - cell "BUSQ-1779508132900-06mhy" [ref=e650]
+              - cell [ref=e651]:
+                - generic [ref=e652]:
+                  - button [ref=e653]:
+                    - img [ref=e654]
+                  - button [ref=e656]:
+                    - img [ref=e657]
+            - 'row "Producto Busqueda-1779508602498-beebr ID: 0097 Categoria Busqueda-1779508602477-qpo1t $100.00 12 BUSQ-1779508602498-9d2j1" [ref=e659]':
+              - 'cell "Producto Busqueda-1779508602498-beebr ID: 0097" [ref=e660]':
+                - paragraph [ref=e661]: Producto Busqueda-1779508602498-beebr
+                - paragraph [ref=e662]: "ID: 0097"
+              - cell "Categoria Busqueda-1779508602477-qpo1t" [ref=e663]
+              - cell "$100.00" [ref=e664]
+              - cell "12" [ref=e665]:
+                - generic [ref=e667]: "12"
+              - cell "BUSQ-1779508602498-9d2j1" [ref=e668]
+              - cell [ref=e669]:
+                - generic [ref=e670]:
+                  - button [ref=e671]:
+                    - img [ref=e672]
+                  - button [ref=e674]:
+                    - img [ref=e675]
+            - 'row "Producto Busqueda-1779510007782-arb6a ID: 0111 Categoria Busqueda-1779510007722-qwk5s $100.00 12 BUSQ-1779510007782-73r2e" [ref=e677]':
+              - 'cell "Producto Busqueda-1779510007782-arb6a ID: 0111" [ref=e678]':
+                - paragraph [ref=e679]: Producto Busqueda-1779510007782-arb6a
+                - paragraph [ref=e680]: "ID: 0111"
+              - cell "Categoria Busqueda-1779510007722-qwk5s" [ref=e681]
+              - cell "$100.00" [ref=e682]
+              - cell "12" [ref=e683]:
+                - generic [ref=e685]: "12"
+              - cell "BUSQ-1779510007782-73r2e" [ref=e686]
+              - cell [ref=e687]:
+                - generic [ref=e688]:
+                  - button [ref=e689]:
+                    - img [ref=e690]
+                  - button [ref=e692]:
+                    - img [ref=e693]
+            - 'row "Producto CP01-1779507557108-6t115 ID: 0021 General $500.00 20 CP01-1779507558775-2alak" [ref=e695]':
+              - 'cell "Producto CP01-1779507557108-6t115 ID: 0021" [ref=e696]':
+                - paragraph [ref=e697]: Producto CP01-1779507557108-6t115
+                - paragraph [ref=e698]: "ID: 0021"
+              - cell "General" [ref=e699]
+              - cell "$500.00" [ref=e700]
+              - cell "20" [ref=e701]:
+                - generic [ref=e703]: "20"
+              - cell "CP01-1779507558775-2alak" [ref=e704]
+              - cell [ref=e705]:
+                - generic [ref=e706]:
+                  - button [ref=e707]:
+                    - img [ref=e708]
+                  - button [ref=e710]:
+                    - img [ref=e711]
+            - 'row "Producto CP01-1779507631524-8gjpo ID: 0028 Categoria E2E-1779507631498-e2nzg $750.00 20 CP01-1779507633257-w5qpn" [ref=e713]':
+              - 'cell "Producto CP01-1779507631524-8gjpo ID: 0028" [ref=e714]':
+                - paragraph [ref=e715]: Producto CP01-1779507631524-8gjpo
+                - paragraph [ref=e716]: "ID: 0028"
+              - cell "Categoria E2E-1779507631498-e2nzg" [ref=e717]
+              - cell "$750.00" [ref=e718]
+              - cell "20" [ref=e719]:
+                - generic [ref=e721]: "20"
+              - cell "CP01-1779507633257-w5qpn" [ref=e722]
+              - cell [ref=e723]:
+                - generic [ref=e724]:
+                  - button [ref=e725]:
+                    - img [ref=e726]
+                  - button [ref=e728]:
+                    - img [ref=e729]
+            - 'row "Producto CP01-1779507660279-wk1dm ID: 0031 Categoria E2E-1779507660244-ipsqs $750.00 20 CP01-1779507661879-al8fw" [ref=e731]':
+              - 'cell "Producto CP01-1779507660279-wk1dm ID: 0031" [ref=e732]':
+                - paragraph [ref=e733]: Producto CP01-1779507660279-wk1dm
+                - paragraph [ref=e734]: "ID: 0031"
+              - cell "Categoria E2E-1779507660244-ipsqs" [ref=e735]
+              - cell "$750.00" [ref=e736]
+              - cell "20" [ref=e737]:
+                - generic [ref=e739]: "20"
+              - cell "CP01-1779507661879-al8fw" [ref=e740]
+              - cell [ref=e741]:
+                - generic [ref=e742]:
+                  - button [ref=e743]:
+                    - img [ref=e744]
+                  - button [ref=e746]:
+                    - img [ref=e747]
+            - 'row "Producto CP01-1779507777806-e9ayr ID: 0046 Categoria E2E-1779507777760-nly0u $750.00 20 CP01-1779507779508-7kab7" [ref=e749]':
+              - 'cell "Producto CP01-1779507777806-e9ayr ID: 0046" [ref=e750]':
+                - paragraph [ref=e751]: Producto CP01-1779507777806-e9ayr
+                - paragraph [ref=e752]: "ID: 0046"
+              - cell "Categoria E2E-1779507777760-nly0u" [ref=e753]
+              - cell "$750.00" [ref=e754]
+              - cell "20" [ref=e755]:
+                - generic [ref=e757]: "20"
+              - cell "CP01-1779507779508-7kab7" [ref=e758]
+              - cell [ref=e759]:
+                - generic [ref=e760]:
+                  - button [ref=e761]:
+                    - img [ref=e762]
+                  - button [ref=e764]:
+                    - img [ref=e765]
+            - 'row "Producto CP01-1779508472457-qlkn3 ID: 0088 Categoria E2E-1779508472415-cmc40 $750.00 20 CP01-1779508477027-0gl5m" [ref=e767]':
+              - 'cell "Producto CP01-1779508472457-qlkn3 ID: 0088" [ref=e768]':
+                - paragraph [ref=e769]: Producto CP01-1779508472457-qlkn3
+                - paragraph [ref=e770]: "ID: 0088"
+              - cell "Categoria E2E-1779508472415-cmc40" [ref=e771]
+              - cell "$750.00" [ref=e772]
+              - cell "20" [ref=e773]:
+                - generic [ref=e775]: "20"
+              - cell "CP01-1779508477027-0gl5m" [ref=e776]
+              - cell [ref=e777]:
+                - generic [ref=e778]:
+                  - button [ref=e779]:
+                    - img [ref=e780]
+                  - button [ref=e782]:
+                    - img [ref=e783]
+            - 'row "Producto CP01-1779508505656-ogj1i ID: 0091 Categoria E2E-1779508505623-oko1y $750.00 20 CP01-1779508507301-dmsc9" [ref=e785]':
+              - 'cell "Producto CP01-1779508505656-ogj1i ID: 0091" [ref=e786]':
+                - paragraph [ref=e787]: Producto CP01-1779508505656-ogj1i
+                - paragraph [ref=e788]: "ID: 0091"
+              - cell "Categoria E2E-1779508505623-oko1y" [ref=e789]
+              - cell "$750.00" [ref=e790]
+              - cell "20" [ref=e791]:
+                - generic [ref=e793]: "20"
+              - cell "CP01-1779508507301-dmsc9" [ref=e794]
+              - cell [ref=e795]:
+                - generic [ref=e796]:
+                  - button [ref=e797]:
+                    - img [ref=e798]
+                  - button [ref=e800]:
+                    - img [ref=e801]
+            - 'row "Producto CP01-1779508581761-duwqf ID: 0094 Categoria E2E-1779508581743-i9e5t $750.00 20 CP01-1779508583151-5l9f5" [ref=e803]':
+              - 'cell "Producto CP01-1779508581761-duwqf ID: 0094" [ref=e804]':
+                - paragraph [ref=e805]: Producto CP01-1779508581761-duwqf
+                - paragraph [ref=e806]: "ID: 0094"
+              - cell "Categoria E2E-1779508581743-i9e5t" [ref=e807]
+              - cell "$750.00" [ref=e808]
+              - cell "20" [ref=e809]:
+                - generic [ref=e811]: "20"
+              - cell "CP01-1779508583151-5l9f5" [ref=e812]
+              - cell [ref=e813]:
+                - generic [ref=e814]:
+                  - button [ref=e815]:
+                    - img [ref=e816]
+                  - button [ref=e818]:
+                    - img [ref=e819]
+            - 'row "Producto CP01-1779508602593-152oa ID: 0100 General $500.00 20 CP01-1779508604097-f2xgv" [ref=e821]':
+              - 'cell "Producto CP01-1779508602593-152oa ID: 0100" [ref=e822]':
+                - paragraph [ref=e823]: Producto CP01-1779508602593-152oa
+                - paragraph [ref=e824]: "ID: 0100"
+              - cell "General" [ref=e825]
+              - cell "$500.00" [ref=e826]
+              - cell "20" [ref=e827]:
+                - generic [ref=e829]: "20"
+              - cell "CP01-1779508604097-f2xgv" [ref=e830]
+              - cell [ref=e831]:
+                - generic [ref=e832]:
+                  - button [ref=e833]:
+                    - img [ref=e834]
+                  - button [ref=e836]:
+                    - img [ref=e837]
+            - 'row "Producto CP01-1779510008660-nbcyn ID: 0114 Categoria E2E-1779510008162-arp3e $750.00 20 CP01-1779510011698-bran3" [ref=e839]':
+              - 'cell "Producto CP01-1779510008660-nbcyn ID: 0114" [ref=e840]':
+                - paragraph [ref=e841]: Producto CP01-1779510008660-nbcyn
+                - paragraph [ref=e842]: "ID: 0114"
+              - cell "Categoria E2E-1779510008162-arp3e" [ref=e843]
+              - cell "$750.00" [ref=e844]
+              - cell "20" [ref=e845]:
+                - generic [ref=e847]: "20"
+              - cell "CP01-1779510011698-bran3" [ref=e848]
+              - cell [ref=e849]:
+                - generic [ref=e850]:
+                  - button [ref=e851]:
+                    - img [ref=e852]
+                  - button [ref=e854]:
+                    - img [ref=e855]
+            - 'row "Producto CP01-1779510130552-d3j6p ID: 0125 Categoria E2E-1779510130537-qizlb $750.00 20 CP01-1779510135289-3emam" [ref=e857]':
+              - 'cell "Producto CP01-1779510130552-d3j6p ID: 0125" [ref=e858]':
+                - paragraph [ref=e859]: Producto CP01-1779510130552-d3j6p
+                - paragraph [ref=e860]: "ID: 0125"
+              - cell "Categoria E2E-1779510130537-qizlb" [ref=e861]
+              - cell "$750.00" [ref=e862]
+              - cell "20" [ref=e863]:
+                - generic [ref=e865]: "20"
+              - cell "CP01-1779510135289-3emam" [ref=e866]
+              - cell [ref=e867]:
+                - generic [ref=e868]:
+                  - button [ref=e869]:
+                    - img [ref=e870]
+                  - button [ref=e872]:
+                    - img [ref=e873]
+            - 'row "Producto CP01-1779510508853-andh6 ID: 0128 Categoria E2E-1779510508824-jx3jf $750.00 20 CP01-1779510510505-azxaf" [ref=e875]':
+              - 'cell "Producto CP01-1779510508853-andh6 ID: 0128" [ref=e876]':
+                - paragraph [ref=e877]: Producto CP01-1779510508853-andh6
+                - paragraph [ref=e878]: "ID: 0128"
+              - cell "Categoria E2E-1779510508824-jx3jf" [ref=e879]
+              - cell "$750.00" [ref=e880]
+              - cell "20" [ref=e881]:
+                - generic [ref=e883]: "20"
+              - cell "CP01-1779510510505-azxaf" [ref=e884]
+              - cell [ref=e885]:
+                - generic [ref=e886]:
+                  - button [ref=e887]:
+                    - img [ref=e888]
+                  - button [ref=e890]:
+                    - img [ref=e891]
+            - 'row "Producto CP01-1779510998699-bqqdc ID: 0131 Categoria E2E-1779510998685-v8lnb $750.00 20 CP01-1779511000139-vbwaq" [ref=e893]':
+              - 'cell "Producto CP01-1779510998699-bqqdc ID: 0131" [ref=e894]':
+                - paragraph [ref=e895]: Producto CP01-1779510998699-bqqdc
+                - paragraph [ref=e896]: "ID: 0131"
+              - cell "Categoria E2E-1779510998685-v8lnb" [ref=e897]
+              - cell "$750.00" [ref=e898]
+              - cell "20" [ref=e899]:
+                - generic [ref=e901]: "20"
+              - cell "CP01-1779511000139-vbwaq" [ref=e902]
+              - cell [ref=e903]:
+                - generic [ref=e904]:
+                  - button [ref=e905]:
+                    - img [ref=e906]
+                  - button [ref=e908]:
+                    - img [ref=e909]
+            - 'row "Producto Corte-1779507492176-j4ola ID: 0014 Categoria E2E-1779507492176-t2kl4 $200.00 3 CODE-1779507492203-q69dq" [ref=e911]':
+              - 'cell "Producto Corte-1779507492176-j4ola ID: 0014" [ref=e912]':
+                - paragraph [ref=e913]: Producto Corte-1779507492176-j4ola
+                - paragraph [ref=e914]: "ID: 0014"
+              - cell "Categoria E2E-1779507492176-t2kl4" [ref=e915]
+              - cell "$200.00" [ref=e916]
+              - cell "3" [ref=e917]:
+                - generic [ref=e919]: "3"
+              - cell "CODE-1779507492203-q69dq" [ref=e920]
+              - cell [ref=e921]:
+                - generic [ref=e922]:
+                  - button [ref=e923]:
+                    - img [ref=e924]
+                  - button [ref=e926]:
+                    - img [ref=e927]
+            - 'row "Producto Corte-1779507589896-lcxff ID: 0025 Categoria E2E-1779507589896-9g1lk $200.00 3 CODE-1779507589926-43g23" [ref=e929]':
+              - 'cell "Producto Corte-1779507589896-lcxff ID: 0025" [ref=e930]':
+                - paragraph [ref=e931]: Producto Corte-1779507589896-lcxff
+                - paragraph [ref=e932]: "ID: 0025"
+              - cell "Categoria E2E-1779507589896-9g1lk" [ref=e933]
+              - cell "$200.00" [ref=e934]
+              - cell "3" [ref=e935]:
+                - generic [ref=e937]: "3"
+              - cell "CODE-1779507589926-43g23" [ref=e938]
+              - cell [ref=e939]:
+                - generic [ref=e940]:
+                  - button [ref=e941]:
+                    - img [ref=e942]
+                  - button [ref=e944]:
+                    - img [ref=e945]
+            - 'row "Producto Corte-1779507697108-7bu8p ID: 0038 Categoria E2E-1779507697108-ukqub $200.00 3 CODE-1779507697134-xkkol" [ref=e947]':
+              - 'cell "Producto Corte-1779507697108-7bu8p ID: 0038" [ref=e948]':
+                - paragraph [ref=e949]: Producto Corte-1779507697108-7bu8p
+                - paragraph [ref=e950]: "ID: 0038"
+              - cell "Categoria E2E-1779507697108-ukqub" [ref=e951]
+              - cell "$200.00" [ref=e952]
+              - cell "3" [ref=e953]:
+                - generic [ref=e955]: "3"
+              - cell "CODE-1779507697134-xkkol" [ref=e956]
+              - cell [ref=e957]:
+                - generic [ref=e958]:
+                  - button [ref=e959]:
+                    - img [ref=e960]
+                  - button [ref=e962]:
+                    - img [ref=e963]
+            - 'row "Producto Corte-1779507818759-xoal0 ID: 0053 Categoria E2E-1779507818759-4u7j1 $200.00 3 CODE-1779507818790-fix7p" [ref=e965]':
+              - 'cell "Producto Corte-1779507818759-xoal0 ID: 0053" [ref=e966]':
+                - paragraph [ref=e967]: Producto Corte-1779507818759-xoal0
+                - paragraph [ref=e968]: "ID: 0053"
+              - cell "Categoria E2E-1779507818759-4u7j1" [ref=e969]
+              - cell "$200.00" [ref=e970]
+              - cell "3" [ref=e971]:
+                - generic [ref=e973]: "3"
+              - cell "CODE-1779507818790-fix7p" [ref=e974]
+              - cell [ref=e975]:
+                - generic [ref=e976]:
+                  - button [ref=e977]:
+                    - img [ref=e978]
+                  - button [ref=e980]:
+                    - img [ref=e981]
+            - 'row "Producto Corte-1779507942839-5edth ID: 0060 Categoria E2E-1779507942839-z2sjj $200.00 3 CODE-1779507942898-mds02" [ref=e983]':
+              - 'cell "Producto Corte-1779507942839-5edth ID: 0060" [ref=e984]':
+                - paragraph [ref=e985]: Producto Corte-1779507942839-5edth
+                - paragraph [ref=e986]: "ID: 0060"
+              - cell "Categoria E2E-1779507942839-z2sjj" [ref=e987]
+              - cell "$200.00" [ref=e988]
+              - cell "3" [ref=e989]:
+                - generic [ref=e991]: "3"
+              - cell "CODE-1779507942898-mds02" [ref=e992]
+              - cell [ref=e993]:
+                - generic [ref=e994]:
+                  - button [ref=e995]:
+                    - img [ref=e996]
+                  - button [ref=e998]:
+                    - img [ref=e999]
+            - 'row "Producto Corte-1779508132800-v6kos ID: 0073 Categoria E2E-1779508132800-gm1oo $200.00 3 CODE-1779508132819-ek125" [ref=e1001]':
+              - 'cell "Producto Corte-1779508132800-v6kos ID: 0073" [ref=e1002]':
+                - paragraph [ref=e1003]: Producto Corte-1779508132800-v6kos
+                - paragraph [ref=e1004]: "ID: 0073"
+              - cell "Categoria E2E-1779508132800-gm1oo" [ref=e1005]
+              - cell "$200.00" [ref=e1006]
+              - cell "3" [ref=e1007]:
+                - generic [ref=e1009]: "3"
+              - cell "CODE-1779508132819-ek125" [ref=e1010]
+              - cell [ref=e1011]:
+                - generic [ref=e1012]:
+                  - button [ref=e1013]:
+                    - img [ref=e1014]
+                  - button [ref=e1016]:
+                    - img [ref=e1017]
+            - 'row "Producto Corte-1779508602564-rbdwu ID: 0098 Categoria E2E-1779508602564-tqqlg $200.00 3 CODE-1779508602614-mfeli" [ref=e1019]':
+              - 'cell "Producto Corte-1779508602564-rbdwu ID: 0098" [ref=e1020]':
+                - paragraph [ref=e1021]: Producto Corte-1779508602564-rbdwu
+                - paragraph [ref=e1022]: "ID: 0098"
+              - cell "Categoria E2E-1779508602564-tqqlg" [ref=e1023]
+              - cell "$200.00" [ref=e1024]
+              - cell "3" [ref=e1025]:
+                - generic [ref=e1027]: "3"
+              - cell "CODE-1779508602614-mfeli" [ref=e1028]
+              - cell [ref=e1029]:
+                - generic [ref=e1030]:
+                  - button [ref=e1031]:
+                    - img [ref=e1032]
+                  - button [ref=e1034]:
+                    - img [ref=e1035]
+            - 'row "Producto Corte-1779510007865-sve2z ID: 0112 Categoria E2E-1779510007865-71zwc $200.00 3 CODE-1779510008271-jvfw9" [ref=e1037]':
+              - 'cell "Producto Corte-1779510007865-sve2z ID: 0112" [ref=e1038]':
+                - paragraph [ref=e1039]: Producto Corte-1779510007865-sve2z
+                - paragraph [ref=e1040]: "ID: 0112"
+              - cell "Categoria E2E-1779510007865-71zwc" [ref=e1041]
+              - cell "$200.00" [ref=e1042]
+              - cell "3" [ref=e1043]:
+                - generic [ref=e1045]: "3"
+              - cell "CODE-1779510008271-jvfw9" [ref=e1046]
+              - cell [ref=e1047]:
+                - generic [ref=e1048]:
+                  - button [ref=e1049]:
+                    - img [ref=e1050]
+                  - button [ref=e1052]:
+                    - img [ref=e1053]
+            - 'row "Producto Exportar-1779507517527-egufe ID: 0020 Categoria E2E-1779507517527-adb9m $100.00 4 CODE-1779507517554-i3ik2" [ref=e1055]':
+              - 'cell "Producto Exportar-1779507517527-egufe ID: 0020" [ref=e1056]':
+                - paragraph [ref=e1057]: Producto Exportar-1779507517527-egufe
+                - paragraph [ref=e1058]: "ID: 0020"
+              - cell "Categoria E2E-1779507517527-adb9m" [ref=e1059]
+              - cell "$100.00" [ref=e1060]
+              - cell "4" [ref=e1061]:
+                - generic [ref=e1063]: "4"
+              - cell "CODE-1779507517554-i3ik2" [ref=e1064]
+              - cell [ref=e1065]:
+                - generic [ref=e1066]:
+                  - button [ref=e1067]:
+                    - img [ref=e1068]
+                  - button [ref=e1070]:
+                    - img [ref=e1071]
+            - 'row "Producto Exportar-1779507726961-7f6ma ID: 0044 Categoria E2E-1779507726961-p7ci5 $100.00 4 CODE-1779507726987-a0n2b" [ref=e1073]':
+              - 'cell "Producto Exportar-1779507726961-7f6ma ID: 0044" [ref=e1074]':
+                - paragraph [ref=e1075]: Producto Exportar-1779507726961-7f6ma
+                - paragraph [ref=e1076]: "ID: 0044"
+              - cell "Categoria E2E-1779507726961-p7ci5" [ref=e1077]
+              - cell "$100.00" [ref=e1078]
+              - cell "4" [ref=e1079]:
+                - generic [ref=e1081]: "4"
+              - cell "CODE-1779507726987-a0n2b" [ref=e1082]
+              - cell [ref=e1083]:
+                - generic [ref=e1084]:
+                  - button [ref=e1085]:
+                    - img [ref=e1086]
+                  - button [ref=e1088]:
+                    - img [ref=e1089]
+            - 'row "Producto Exportar-1779507842811-ffs03 ID: 0059 Categoria E2E-1779507842811-1u6xo $100.00 4 CODE-1779507842838-527c6" [ref=e1091]':
+              - 'cell "Producto Exportar-1779507842811-ffs03 ID: 0059" [ref=e1092]':
+                - paragraph [ref=e1093]: Producto Exportar-1779507842811-ffs03
+                - paragraph [ref=e1094]: "ID: 0059"
+              - cell "Categoria E2E-1779507842811-1u6xo" [ref=e1095]
+              - cell "$100.00" [ref=e1096]
+              - cell "4" [ref=e1097]:
+                - generic [ref=e1099]: "4"
+              - cell "CODE-1779507842838-527c6" [ref=e1100]
+              - cell [ref=e1101]:
+                - generic [ref=e1102]:
+                  - button [ref=e1103]:
+                    - img [ref=e1104]
+                  - button [ref=e1106]:
+                    - img [ref=e1107]
+            - 'row "Producto Exportar-1779507949907-7hy7x ID: 0069 Categoria E2E-1779507949907-0nbfn $100.00 4 CODE-1779507949933-a16su" [ref=e1109]':
+              - 'cell "Producto Exportar-1779507949907-7hy7x ID: 0069" [ref=e1110]':
+                - paragraph [ref=e1111]: Producto Exportar-1779507949907-7hy7x
+                - paragraph [ref=e1112]: "ID: 0069"
+              - cell "Categoria E2E-1779507949907-0nbfn" [ref=e1113]
+              - cell "$100.00" [ref=e1114]
+              - cell "4" [ref=e1115]:
+                - generic [ref=e1117]: "4"
+              - cell "CODE-1779507949933-a16su" [ref=e1118]
+              - cell [ref=e1119]:
+                - generic [ref=e1120]:
+                  - button [ref=e1121]:
+                    - img [ref=e1122]
+                  - button [ref=e1124]:
+                    - img [ref=e1125]
+            - 'row "Producto Exportar-1779508140118-wghjs ID: 0082 Categoria E2E-1779508140118-ttfth $100.00 4 CODE-1779508140150-x0x0f" [ref=e1127]':
+              - 'cell "Producto Exportar-1779508140118-wghjs ID: 0082" [ref=e1128]':
+                - paragraph [ref=e1129]: Producto Exportar-1779508140118-wghjs
+                - paragraph [ref=e1130]: "ID: 0082"
+              - cell "Categoria E2E-1779508140118-ttfth" [ref=e1131]
+              - cell "$100.00" [ref=e1132]
+              - cell "4" [ref=e1133]:
+                - generic [ref=e1135]: "4"
+              - cell "CODE-1779508140150-x0x0f" [ref=e1136]
+              - cell [ref=e1137]:
+                - generic [ref=e1138]:
+                  - button [ref=e1139]:
+                    - img [ref=e1140]
+                  - button [ref=e1142]:
+                    - img [ref=e1143]
+            - 'row "Producto Exportar-1779508611411-3c4n3 ID: 0107 Categoria E2E-1779508611411-brdic $100.00 4 CODE-1779508611465-v1si8" [ref=e1145]':
+              - 'cell "Producto Exportar-1779508611411-3c4n3 ID: 0107" [ref=e1146]':
+                - paragraph [ref=e1147]: Producto Exportar-1779508611411-3c4n3
+                - paragraph [ref=e1148]: "ID: 0107"
+              - cell "Categoria E2E-1779508611411-brdic" [ref=e1149]
+              - cell "$100.00" [ref=e1150]
+              - cell "4" [ref=e1151]:
+                - generic [ref=e1153]: "4"
+              - cell "CODE-1779508611465-v1si8" [ref=e1154]
+              - cell [ref=e1155]:
+                - generic [ref=e1156]:
+                  - button [ref=e1157]:
+                    - img [ref=e1158]
+                  - button [ref=e1160]:
+                    - img [ref=e1161]
+            - 'row "Producto Exportar-1779510021153-7uvnr ID: 0121 Categoria E2E-1779510021153-jxe6x $100.00 4 CODE-1779510021194-halxm" [ref=e1163]':
+              - 'cell "Producto Exportar-1779510021153-7uvnr ID: 0121" [ref=e1164]':
+                - paragraph [ref=e1165]: Producto Exportar-1779510021153-7uvnr
+                - paragraph [ref=e1166]: "ID: 0121"
+              - cell "Categoria E2E-1779510021153-jxe6x" [ref=e1167]
+              - cell "$100.00" [ref=e1168]
+              - cell "4" [ref=e1169]:
+                - generic [ref=e1171]: "4"
+              - cell "CODE-1779510021194-halxm" [ref=e1172]
+              - cell [ref=e1173]:
+                - generic [ref=e1174]:
+                  - button [ref=e1175]:
+                    - img [ref=e1176]
+                  - button [ref=e1178]:
+                    - img [ref=e1179]
+            - 'row "Producto Merma Invalida-1779507510034-rbioa ID: 0018 Categoria E2E-1779507510034-ayj4a $100.00 8 CODE-1779507510061-p2omb" [ref=e1181]':
+              - 'cell "Producto Merma Invalida-1779507510034-rbioa ID: 0018" [ref=e1182]':
+                - paragraph [ref=e1183]: Producto Merma Invalida-1779507510034-rbioa
+                - paragraph [ref=e1184]: "ID: 0018"
+              - cell "Categoria E2E-1779507510034-ayj4a" [ref=e1185]
+              - cell "$100.00" [ref=e1186]
+              - cell "8" [ref=e1187]:
+                - generic [ref=e1189]: "8"
+              - cell "CODE-1779507510061-p2omb" [ref=e1190]
+              - cell [ref=e1191]:
+                - generic [ref=e1192]:
+                  - button [ref=e1193]:
+                    - img [ref=e1194]
+                  - button [ref=e1196]:
+                    - img [ref=e1197]
+            - 'row "Producto Merma Invalida-1779507713506-vza4f ID: 0042 Categoria E2E-1779507713506-5pdl2 $100.00 8 CODE-1779507713535-lfojn" [ref=e1199]':
+              - 'cell "Producto Merma Invalida-1779507713506-vza4f ID: 0042" [ref=e1200]':
+                - paragraph [ref=e1201]: Producto Merma Invalida-1779507713506-vza4f
+                - paragraph [ref=e1202]: "ID: 0042"
+              - cell "Categoria E2E-1779507713506-5pdl2" [ref=e1203]
+              - cell "$100.00" [ref=e1204]
+              - cell "8" [ref=e1205]:
+                - generic [ref=e1207]: "8"
+              - cell "CODE-1779507713535-lfojn" [ref=e1208]
+              - cell [ref=e1209]:
+                - generic [ref=e1210]:
+                  - button [ref=e1211]:
+                    - img [ref=e1212]
+                  - button [ref=e1214]:
+                    - img [ref=e1215]
+            - 'row "Producto Merma Invalida-1779507835284-duvy9 ID: 0057 Categoria E2E-1779507835284-ta0a9 $100.00 8 CODE-1779507835311-sz6zk" [ref=e1217]':
+              - 'cell "Producto Merma Invalida-1779507835284-duvy9 ID: 0057" [ref=e1218]':
+                - paragraph [ref=e1219]: Producto Merma Invalida-1779507835284-duvy9
+                - paragraph [ref=e1220]: "ID: 0057"
+              - cell "Categoria E2E-1779507835284-ta0a9" [ref=e1221]
+              - cell "$100.00" [ref=e1222]
+              - cell "8" [ref=e1223]:
+                - generic [ref=e1225]: "8"
+              - cell "CODE-1779507835311-sz6zk" [ref=e1226]
+              - cell [ref=e1227]:
+                - generic [ref=e1228]:
+                  - button [ref=e1229]:
+                    - img [ref=e1230]
+                  - button [ref=e1232]:
+                    - img [ref=e1233]
+            - 'row "Producto Merma Invalida-1779507950580-ah5cq ID: 0072 Categoria E2E-1779507950580-gyuhu $100.00 8 CODE-1779507950603-iqeqc" [ref=e1235]':
+              - 'cell "Producto Merma Invalida-1779507950580-ah5cq ID: 0072" [ref=e1236]':
+                - paragraph [ref=e1237]: Producto Merma Invalida-1779507950580-ah5cq
+                - paragraph [ref=e1238]: "ID: 0072"
+              - cell "Categoria E2E-1779507950580-gyuhu" [ref=e1239]
+              - cell "$100.00" [ref=e1240]
+              - cell "8" [ref=e1241]:
+                - generic [ref=e1243]: "8"
+              - cell "CODE-1779507950603-iqeqc" [ref=e1244]
+              - cell [ref=e1245]:
+                - generic [ref=e1246]:
+                  - button [ref=e1247]:
+                    - img [ref=e1248]
+                  - button [ref=e1250]:
+                    - img [ref=e1251]
+            - 'row "Producto Merma Invalida-1779508140161-favad ID: 0083 Categoria E2E-1779508140161-cgurf $100.00 8 CODE-1779508140202-10iq8" [ref=e1253]':
+              - 'cell "Producto Merma Invalida-1779508140161-favad ID: 0083" [ref=e1254]':
+                - paragraph [ref=e1255]: Producto Merma Invalida-1779508140161-favad
+                - paragraph [ref=e1256]: "ID: 0083"
+              - cell "Categoria E2E-1779508140161-cgurf" [ref=e1257]
+              - cell "$100.00" [ref=e1258]
+              - cell "8" [ref=e1259]:
+                - generic [ref=e1261]: "8"
+              - cell "CODE-1779508140202-10iq8" [ref=e1262]
+              - cell [ref=e1263]:
+                - generic [ref=e1264]:
+                  - button [ref=e1265]:
+                    - img [ref=e1266]
+                  - button [ref=e1268]:
+                    - img [ref=e1269]
+            - 'row "Producto Merma Invalida-1779508611800-qdcbc ID: 0108 Categoria E2E-1779508611800-sd7uv $100.00 8 CODE-1779508611862-k5nfp" [ref=e1271]':
+              - 'cell "Producto Merma Invalida-1779508611800-qdcbc ID: 0108" [ref=e1272]':
+                - paragraph [ref=e1273]: Producto Merma Invalida-1779508611800-qdcbc
+                - paragraph [ref=e1274]: "ID: 0108"
+              - cell "Categoria E2E-1779508611800-sd7uv" [ref=e1275]
+              - cell "$100.00" [ref=e1276]
+              - cell "8" [ref=e1277]:
+                - generic [ref=e1279]: "8"
+              - cell "CODE-1779508611862-k5nfp" [ref=e1280]
+              - cell [ref=e1281]:
+                - generic [ref=e1282]:
+                  - button [ref=e1283]:
+                    - img [ref=e1284]
+                  - button [ref=e1286]:
+                    - img [ref=e1287]
+            - 'row "Producto Merma Invalida-1779510022234-oibmp ID: 0122 Categoria E2E-1779510022234-hcyyk $100.00 8 CODE-1779510022264-xohxz" [ref=e1289]':
+              - 'cell "Producto Merma Invalida-1779510022234-oibmp ID: 0122" [ref=e1290]':
+                - paragraph [ref=e1291]: Producto Merma Invalida-1779510022234-oibmp
+                - paragraph [ref=e1292]: "ID: 0122"
+              - cell "Categoria E2E-1779510022234-hcyyk" [ref=e1293]
+              - cell "$100.00" [ref=e1294]
+              - cell "8" [ref=e1295]:
+                - generic [ref=e1297]: "8"
+              - cell "CODE-1779510022264-xohxz" [ref=e1298]
+              - cell [ref=e1299]:
+                - generic [ref=e1300]:
+                  - button [ref=e1301]:
+                    - img [ref=e1302]
+                  - button [ref=e1304]:
+                    - img [ref=e1305]
+            - 'row "Producto Merma-1779507506246-nbf9h ID: 0017 Categoria E2E-1779507506247-fm6s7 $100.00 6 CODE-1779507506271-vyntl" [ref=e1307]':
+              - 'cell "Producto Merma-1779507506246-nbf9h ID: 0017" [ref=e1308]':
+                - paragraph [ref=e1309]: Producto Merma-1779507506246-nbf9h
+                - paragraph [ref=e1310]: "ID: 0017"
+              - cell "Categoria E2E-1779507506247-fm6s7" [ref=e1311]
+              - cell "$100.00" [ref=e1312]
+              - cell "6" [ref=e1313]:
+                - generic [ref=e1315]: "6"
+              - cell "CODE-1779507506271-vyntl" [ref=e1316]
+              - cell [ref=e1317]:
+                - generic [ref=e1318]:
+                  - button [ref=e1319]:
+                    - img [ref=e1320]
+                  - button [ref=e1322]:
+                    - img [ref=e1323]
+            - 'row "Producto Merma-1779507709748-4ev7d ID: 0041 Categoria E2E-1779507709748-xouj1 $100.00 6 CODE-1779507709777-ipnq7" [ref=e1325]':
+              - 'cell "Producto Merma-1779507709748-4ev7d ID: 0041" [ref=e1326]':
+                - paragraph [ref=e1327]: Producto Merma-1779507709748-4ev7d
+                - paragraph [ref=e1328]: "ID: 0041"
+              - cell "Categoria E2E-1779507709748-xouj1" [ref=e1329]
+              - cell "$100.00" [ref=e1330]
+              - cell "6" [ref=e1331]:
+                - generic [ref=e1333]: "6"
+              - cell "CODE-1779507709777-ipnq7" [ref=e1334]
+              - cell [ref=e1335]:
+                - generic [ref=e1336]:
+                  - button [ref=e1337]:
+                    - img [ref=e1338]
+                  - button [ref=e1340]:
+                    - img [ref=e1341]
+            - 'row "Producto Merma-1779507831379-d78r0 ID: 0056 Categoria E2E-1779507831379-gfu7d $100.00 6 CODE-1779507831413-70fzt" [ref=e1343]':
+              - 'cell "Producto Merma-1779507831379-d78r0 ID: 0056" [ref=e1344]':
+                - paragraph [ref=e1345]: Producto Merma-1779507831379-d78r0
+                - paragraph [ref=e1346]: "ID: 0056"
+              - cell "Categoria E2E-1779507831379-gfu7d" [ref=e1347]
+              - cell "$100.00" [ref=e1348]
+              - cell "6" [ref=e1349]:
+                - generic [ref=e1351]: "6"
+              - cell "CODE-1779507831413-70fzt" [ref=e1352]
+              - cell [ref=e1353]:
+                - generic [ref=e1354]:
+                  - button [ref=e1355]:
+                    - img [ref=e1356]
+                  - button [ref=e1358]:
+                    - img [ref=e1359]
+            - 'row "Producto Merma-1779507946872-3mgr6 ID: 0067 Categoria E2E-1779507946872-esptl $100.00 8 CODE-1779507946936-7q8hk" [ref=e1361]':
+              - 'cell "Producto Merma-1779507946872-3mgr6 ID: 0067" [ref=e1362]':
+                - paragraph [ref=e1363]: Producto Merma-1779507946872-3mgr6
+                - paragraph [ref=e1364]: "ID: 0067"
+              - cell "Categoria E2E-1779507946872-esptl" [ref=e1365]
+              - cell "$100.00" [ref=e1366]
+              - cell "8" [ref=e1367]:
+                - generic [ref=e1369]: "8"
+              - cell "CODE-1779507946936-7q8hk" [ref=e1370]
+              - cell [ref=e1371]:
+                - generic [ref=e1372]:
+                  - button [ref=e1373]:
+                    - img [ref=e1374]
+                  - button [ref=e1376]:
+                    - img [ref=e1377]
+            - 'row "Producto Merma-1779508136236-pby55 ID: 0077 Categoria E2E-1779508136236-09rwu $100.00 8 CODE-1779508136256-l3hps" [ref=e1379]':
+              - 'cell "Producto Merma-1779508136236-pby55 ID: 0077" [ref=e1380]':
+                - paragraph [ref=e1381]: Producto Merma-1779508136236-pby55
+                - paragraph [ref=e1382]: "ID: 0077"
+              - cell "Categoria E2E-1779508136236-09rwu" [ref=e1383]
+              - cell "$100.00" [ref=e1384]
+              - cell "8" [ref=e1385]:
+                - generic [ref=e1387]: "8"
+              - cell "CODE-1779508136256-l3hps" [ref=e1388]
+              - cell [ref=e1389]:
+                - generic [ref=e1390]:
+                  - button [ref=e1391]:
+                    - img [ref=e1392]
+                  - button [ref=e1394]:
+                    - img [ref=e1395]
+            - 'row "Producto Merma-1779508607125-lr82r ID: 0103 Categoria E2E-1779508607125-h1aig $100.00 6 CODE-1779508607149-5mjmm" [ref=e1397]':
+              - 'cell "Producto Merma-1779508607125-lr82r ID: 0103" [ref=e1398]':
+                - paragraph [ref=e1399]: Producto Merma-1779508607125-lr82r
+                - paragraph [ref=e1400]: "ID: 0103"
+              - cell "Categoria E2E-1779508607125-h1aig" [ref=e1401]
+              - cell "$100.00" [ref=e1402]
+              - cell "6" [ref=e1403]:
+                - generic [ref=e1405]: "6"
+              - cell "CODE-1779508607149-5mjmm" [ref=e1406]
+              - cell [ref=e1407]:
+                - generic [ref=e1408]:
+                  - button [ref=e1409]:
+                    - img [ref=e1410]
+                  - button [ref=e1412]:
+                    - img [ref=e1413]
+            - 'row "Producto Merma-1779510016589-c93dh ID: 0118 Categoria E2E-1779510016589-z08cq $100.00 6 CODE-1779510016623-nqhyg" [ref=e1415]':
+              - 'cell "Producto Merma-1779510016589-c93dh ID: 0118" [ref=e1416]':
+                - paragraph [ref=e1417]: Producto Merma-1779510016589-c93dh
+                - paragraph [ref=e1418]: "ID: 0118"
+              - cell "Categoria E2E-1779510016589-z08cq" [ref=e1419]
+              - cell "$100.00" [ref=e1420]
+              - cell "6" [ref=e1421]:
+                - generic [ref=e1423]: "6"
+              - cell "CODE-1779510016623-nqhyg" [ref=e1424]
+              - cell [ref=e1425]:
+                - generic [ref=e1426]:
+                  - button [ref=e1427]:
+                    - img [ref=e1428]
+                  - button [ref=e1430]:
+                    - img [ref=e1431]
+            - 'row "Producto Reporte IA-1779507513714-n7xbr ID: 0019 Categoria E2E-1779507513714-7ahbc $100.00 4 CODE-1779507513740-4cpw6" [ref=e1433]':
+              - 'cell "Producto Reporte IA-1779507513714-n7xbr ID: 0019" [ref=e1434]':
+                - paragraph [ref=e1435]: Producto Reporte IA-1779507513714-n7xbr
+                - paragraph [ref=e1436]: "ID: 0019"
+              - cell "Categoria E2E-1779507513714-7ahbc" [ref=e1437]
+              - cell "$100.00" [ref=e1438]
+              - cell "4" [ref=e1439]:
+                - generic [ref=e1441]: "4"
+              - cell "CODE-1779507513740-4cpw6" [ref=e1442]
+              - cell [ref=e1443]:
+                - generic [ref=e1444]:
+                  - button [ref=e1445]:
+                    - img [ref=e1446]
+                  - button [ref=e1448]:
+                    - img [ref=e1449]
+            - 'row "Producto Reporte IA-1779507717029-3ew1u ID: 0043 Categoria E2E-1779507717029-o3f8w $100.00 4 CODE-1779507717061-6l9a4" [ref=e1451]':
+              - 'cell "Producto Reporte IA-1779507717029-3ew1u ID: 0043" [ref=e1452]':
+                - paragraph [ref=e1453]: Producto Reporte IA-1779507717029-3ew1u
+                - paragraph [ref=e1454]: "ID: 0043"
+              - cell "Categoria E2E-1779507717029-o3f8w" [ref=e1455]
+              - cell "$100.00" [ref=e1456]
+              - cell "4" [ref=e1457]:
+                - generic [ref=e1459]: "4"
+              - cell "CODE-1779507717061-6l9a4" [ref=e1460]
+              - cell [ref=e1461]:
+                - generic [ref=e1462]:
+                  - button [ref=e1463]:
+                    - img [ref=e1464]
+                  - button [ref=e1466]:
+                    - img [ref=e1467]
+            - 'row "Producto Reporte IA-1779507759063-cfagm ID: 0045 Categoria E2E-1779507759063-hinhb $100.00 25 CODE-1779507759090-meghy" [ref=e1469]':
+              - 'cell "Producto Reporte IA-1779507759063-cfagm ID: 0045" [ref=e1470]':
+                - paragraph [ref=e1471]: Producto Reporte IA-1779507759063-cfagm
+                - paragraph [ref=e1472]: "ID: 0045"
+              - cell "Categoria E2E-1779507759063-hinhb" [ref=e1473]
+              - cell "$100.00" [ref=e1474]
+              - cell "25" [ref=e1475]:
+                - generic [ref=e1477]: "25"
+              - cell "CODE-1779507759090-meghy" [ref=e1478]
+              - cell [ref=e1479]:
+                - generic [ref=e1480]:
+                  - button [ref=e1481]:
+                    - img [ref=e1482]
+                  - button [ref=e1484]:
+                    - img [ref=e1485]
+            - 'row "Producto Reporte IA-1779507839046-hpbpx ID: 0058 Categoria E2E-1779507839046-43ax6 $100.00 25 CODE-1779507839074-lpym7" [ref=e1487]':
+              - 'cell "Producto Reporte IA-1779507839046-hpbpx ID: 0058" [ref=e1488]':
+                - paragraph [ref=e1489]: Producto Reporte IA-1779507839046-hpbpx
+                - paragraph [ref=e1490]: "ID: 0058"
+              - cell "Categoria E2E-1779507839046-43ax6" [ref=e1491]
+              - cell "$100.00" [ref=e1492]
+              - cell "25" [ref=e1493]:
+                - generic [ref=e1495]: "25"
+              - cell "CODE-1779507839074-lpym7" [ref=e1496]
+              - cell [ref=e1497]:
+                - generic [ref=e1498]:
+                  - button [ref=e1499]:
+                    - img [ref=e1500]
+                  - button [ref=e1502]:
+                    - img [ref=e1503]
+            - 'row "Producto Reporte IA-1779507946757-z7rmv ID: 0066 Categoria E2E-1779507946757-oz3at $100.00 25 CODE-1779507946787-lgic5" [ref=e1505]':
+              - 'cell "Producto Reporte IA-1779507946757-z7rmv ID: 0066" [ref=e1506]':
+                - paragraph [ref=e1507]: Producto Reporte IA-1779507946757-z7rmv
+                - paragraph [ref=e1508]: "ID: 0066"
+              - cell "Categoria E2E-1779507946757-oz3at" [ref=e1509]
+              - cell "$100.00" [ref=e1510]
+              - cell "25" [ref=e1511]:
+                - generic [ref=e1513]: "25"
+              - cell "CODE-1779507946787-lgic5" [ref=e1514]
+              - cell [ref=e1515]:
+                - generic [ref=e1516]:
+                  - button [ref=e1517]:
+                    - img [ref=e1518]
+                  - button [ref=e1520]:
+                    - img [ref=e1521]
+            - 'row "Producto Reporte IA-1779508136360-hhouq ID: 0078 Categoria E2E-1779508136361-a94mf $100.00 25 CODE-1779508136428-8cgp7" [ref=e1523]':
+              - 'cell "Producto Reporte IA-1779508136360-hhouq ID: 0078" [ref=e1524]':
+                - paragraph [ref=e1525]: Producto Reporte IA-1779508136360-hhouq
+                - paragraph [ref=e1526]: "ID: 0078"
+              - cell "Categoria E2E-1779508136361-a94mf" [ref=e1527]
+              - cell "$100.00" [ref=e1528]
+              - cell "25" [ref=e1529]:
+                - generic [ref=e1531]: "25"
+              - cell "CODE-1779508136428-8cgp7" [ref=e1532]
+              - cell [ref=e1533]:
+                - generic [ref=e1534]:
+                  - button [ref=e1535]:
+                    - img [ref=e1536]
+                  - button [ref=e1538]:
+                    - img [ref=e1539]
+            - 'row "Producto Reporte IA-1779508607602-yf7vs ID: 0104 Categoria E2E-1779508607602-fbhao $100.00 25 CODE-1779508607625-2053r" [ref=e1541]':
+              - 'cell "Producto Reporte IA-1779508607602-yf7vs ID: 0104" [ref=e1542]':
+                - paragraph [ref=e1543]: Producto Reporte IA-1779508607602-yf7vs
+                - paragraph [ref=e1544]: "ID: 0104"
+              - cell "Categoria E2E-1779508607602-fbhao" [ref=e1545]
+              - cell "$100.00" [ref=e1546]
+              - cell "25" [ref=e1547]:
+                - generic [ref=e1549]: "25"
+              - cell "CODE-1779508607625-2053r" [ref=e1550]
+              - cell [ref=e1551]:
+                - generic [ref=e1552]:
+                  - button [ref=e1553]:
+                    - img [ref=e1554]
+                  - button [ref=e1556]:
+                    - img [ref=e1557]
+            - 'row "Producto Reporte IA-1779510016115-ydztc ID: 0117 Categoria E2E-1779510016115-2cgq5 $100.00 25 CODE-1779510016189-db9da" [ref=e1559]':
+              - 'cell "Producto Reporte IA-1779510016115-ydztc ID: 0117" [ref=e1560]':
+                - paragraph [ref=e1561]: Producto Reporte IA-1779510016115-ydztc
+                - paragraph [ref=e1562]: "ID: 0117"
+              - cell "Categoria E2E-1779510016115-2cgq5" [ref=e1563]
+              - cell "$100.00" [ref=e1564]
+              - cell "25" [ref=e1565]:
+                - generic [ref=e1567]: "25"
+              - cell "CODE-1779510016189-db9da" [ref=e1568]
+              - cell [ref=e1569]:
+                - generic [ref=e1570]:
+                  - button [ref=e1571]:
+                    - img [ref=e1572]
+                  - button [ref=e1574]:
+                    - img [ref=e1575]
+            - 'row "Producto Sin Stock-1779507484261-52hg3 ID: 0012 Categoria E2E-1779507484261-dq05y $100.00 0 Stock bajo CODE-1779507484291-e476h" [ref=e1577]':
+              - 'cell "Producto Sin Stock-1779507484261-52hg3 ID: 0012" [ref=e1578]':
+                - paragraph [ref=e1579]: Producto Sin Stock-1779507484261-52hg3
+                - paragraph [ref=e1580]: "ID: 0012"
+              - cell "Categoria E2E-1779507484261-dq05y" [ref=e1581]
+              - cell "$100.00" [ref=e1582]
+              - cell "0 Stock bajo" [ref=e1583]:
+                - generic [ref=e1584]:
+                  - generic [ref=e1585]: "0"
+                  - generic "Stock bajo" [ref=e1586]
+              - cell "CODE-1779507484291-e476h" [ref=e1587]
+              - cell [ref=e1588]:
+                - generic [ref=e1589]:
+                  - button [ref=e1590]:
+                    - img [ref=e1591]
+                  - button [ref=e1593]:
+                    - img [ref=e1594]
+            - 'row "Producto Sin Stock-1779507689599-mevs6 ID: 0036 Categoria E2E-1779507689599-pdqgh $100.00 0 Stock bajo CODE-1779507689627-dd1bm" [ref=e1596]':
+              - 'cell "Producto Sin Stock-1779507689599-mevs6 ID: 0036" [ref=e1597]':
+                - paragraph [ref=e1598]: Producto Sin Stock-1779507689599-mevs6
+                - paragraph [ref=e1599]: "ID: 0036"
+              - cell "Categoria E2E-1779507689599-pdqgh" [ref=e1600]
+              - cell "$100.00" [ref=e1601]
+              - cell "0 Stock bajo" [ref=e1602]:
+                - generic [ref=e1603]:
+                  - generic [ref=e1604]: "0"
+                  - generic "Stock bajo" [ref=e1605]
+              - cell "CODE-1779507689627-dd1bm" [ref=e1606]
+              - cell [ref=e1607]:
+                - generic [ref=e1608]:
+                  - button [ref=e1609]:
+                    - img [ref=e1610]
+                  - button [ref=e1612]:
+                    - img [ref=e1613]
+            - 'row "Producto Sin Stock-1779507811080-mlcfh ID: 0051 Categoria E2E-1779507811080-ltf6i $100.00 0 Stock bajo CODE-1779507811112-07m26" [ref=e1615]':
+              - 'cell "Producto Sin Stock-1779507811080-mlcfh ID: 0051" [ref=e1616]':
+                - paragraph [ref=e1617]: Producto Sin Stock-1779507811080-mlcfh
+                - paragraph [ref=e1618]: "ID: 0051"
+              - cell "Categoria E2E-1779507811080-ltf6i" [ref=e1619]
+              - cell "$100.00" [ref=e1620]
+              - cell "0 Stock bajo" [ref=e1621]:
+                - generic [ref=e1622]:
+                  - generic [ref=e1623]: "0"
+                  - generic "Stock bajo" [ref=e1624]
+              - cell "CODE-1779507811112-07m26" [ref=e1625]
+              - cell [ref=e1626]:
+                - generic [ref=e1627]:
+                  - button [ref=e1628]:
+                    - img [ref=e1629]
+                  - button [ref=e1631]:
+                    - img [ref=e1632]
+            - 'row "Producto Sin Stock-1779507949917-4x873 ID: 0068 Categoria E2E-1779507949917-taj5k $100.00 0 Stock bajo CODE-1779507949955-bvvwz" [ref=e1634]':
+              - 'cell "Producto Sin Stock-1779507949917-4x873 ID: 0068" [ref=e1635]':
+                - paragraph [ref=e1636]: Producto Sin Stock-1779507949917-4x873
+                - paragraph [ref=e1637]: "ID: 0068"
+              - cell "Categoria E2E-1779507949917-taj5k" [ref=e1638]
+              - cell "$100.00" [ref=e1639]
+              - cell "0 Stock bajo" [ref=e1640]:
+                - generic [ref=e1641]:
+                  - generic [ref=e1642]: "0"
+                  - generic "Stock bajo" [ref=e1643]
+              - cell "CODE-1779507949955-bvvwz" [ref=e1644]
+              - cell [ref=e1645]:
+                - generic [ref=e1646]:
+                  - button [ref=e1647]:
+                    - img [ref=e1648]
+                  - button [ref=e1650]:
+                    - img [ref=e1651]
+            - 'row "Producto Sin Stock-1779508140833-n7fbr ID: 0085 Categoria E2E-1779508140834-0f8wv $100.00 0 Stock bajo CODE-1779508140868-rtzdp" [ref=e1653]':
+              - 'cell "Producto Sin Stock-1779508140833-n7fbr ID: 0085" [ref=e1654]':
+                - paragraph [ref=e1655]: Producto Sin Stock-1779508140833-n7fbr
+                - paragraph [ref=e1656]: "ID: 0085"
+              - cell "Categoria E2E-1779508140834-0f8wv" [ref=e1657]
+              - cell "$100.00" [ref=e1658]
+              - cell "0 Stock bajo" [ref=e1659]:
+                - generic [ref=e1660]:
+                  - generic [ref=e1661]: "0"
+                  - generic "Stock bajo" [ref=e1662]
+              - cell "CODE-1779508140868-rtzdp" [ref=e1663]
+              - cell [ref=e1664]:
+                - generic [ref=e1665]:
+                  - button [ref=e1666]:
+                    - img [ref=e1667]
+                  - button [ref=e1669]:
+                    - img [ref=e1670]
+            - 'row "Producto Sin Stock-1779508609333-5w7sj ID: 0105 Categoria E2E-1779508609333-9n4qk $100.00 0 Stock bajo CODE-1779508609378-djkup" [ref=e1672]':
+              - 'cell "Producto Sin Stock-1779508609333-5w7sj ID: 0105" [ref=e1673]':
+                - paragraph [ref=e1674]: Producto Sin Stock-1779508609333-5w7sj
+                - paragraph [ref=e1675]: "ID: 0105"
+              - cell "Categoria E2E-1779508609333-9n4qk" [ref=e1676]
+              - cell "$100.00" [ref=e1677]
+              - cell "0 Stock bajo" [ref=e1678]:
+                - generic [ref=e1679]:
+                  - generic [ref=e1680]: "0"
+                  - generic "Stock bajo" [ref=e1681]
+              - cell "CODE-1779508609378-djkup" [ref=e1682]
+              - cell [ref=e1683]:
+                - generic [ref=e1684]:
+                  - button [ref=e1685]:
+                    - img [ref=e1686]
+                  - button [ref=e1688]:
+                    - img [ref=e1689]
+            - 'row "Producto Sin Stock-1779510026227-d3g73 ID: 0123 Categoria E2E-1779510026228-tc5at $100.00 0 Stock bajo CODE-1779510026263-vjypy" [ref=e1691]':
+              - 'cell "Producto Sin Stock-1779510026227-d3g73 ID: 0123" [ref=e1692]':
+                - paragraph [ref=e1693]: Producto Sin Stock-1779510026227-d3g73
+                - paragraph [ref=e1694]: "ID: 0123"
+              - cell "Categoria E2E-1779510026228-tc5at" [ref=e1695]
+              - cell "$100.00" [ref=e1696]
+              - cell "0 Stock bajo" [ref=e1697]:
+                - generic [ref=e1698]:
+                  - generic [ref=e1699]: "0"
+                  - generic "Stock bajo" [ref=e1700]
+              - cell "CODE-1779510026263-vjypy" [ref=e1701]
+              - cell [ref=e1702]:
+                - generic [ref=e1703]:
+                  - button [ref=e1704]:
+                    - img [ref=e1705]
+                  - button [ref=e1707]:
+                    - img [ref=e1708]
+            - 'row "Producto Stock Invalido-1779507501648-lykqu ID: 0016 Categoria E2E-1779507501648-k9ytd $100.00 20 CODE-1779507501678-e98z4" [ref=e1710]':
+              - 'cell "Producto Stock Invalido-1779507501648-lykqu ID: 0016" [ref=e1711]':
+                - paragraph [ref=e1712]: Producto Stock Invalido-1779507501648-lykqu
+                - paragraph [ref=e1713]: "ID: 0016"
+              - cell "Categoria E2E-1779507501648-k9ytd" [ref=e1714]
+              - cell "$100.00" [ref=e1715]
+              - cell "20" [ref=e1716]:
+                - generic [ref=e1718]: "20"
+              - cell "CODE-1779507501678-e98z4" [ref=e1719]
+              - cell [ref=e1720]:
+                - generic [ref=e1721]:
+                  - button [ref=e1722]:
+                    - img [ref=e1723]
+                  - button [ref=e1725]:
+                    - img [ref=e1726]
+            - 'row "Producto Stock Invalido-1779507597473-mkswb ID: 0027 Categoria E2E-1779507597473-b5zyp $100.00 20 CODE-1779507597499-syhk9" [ref=e1728]':
+              - 'cell "Producto Stock Invalido-1779507597473-mkswb ID: 0027" [ref=e1729]':
+                - paragraph [ref=e1730]: Producto Stock Invalido-1779507597473-mkswb
+                - paragraph [ref=e1731]: "ID: 0027"
+              - cell "Categoria E2E-1779507597473-b5zyp" [ref=e1732]
+              - cell "$100.00" [ref=e1733]
+              - cell "20" [ref=e1734]:
+                - generic [ref=e1736]: "20"
+              - cell "CODE-1779507597499-syhk9" [ref=e1737]
+              - cell [ref=e1738]:
+                - generic [ref=e1739]:
+                  - button [ref=e1740]:
+                    - img [ref=e1741]
+                  - button [ref=e1743]:
+                    - img [ref=e1744]
+            - 'row "Producto Stock Invalido-1779507705666-2p3tc ID: 0040 Categoria E2E-1779507705666-4732r $100.00 20 CODE-1779507705695-dnwkp" [ref=e1746]':
+              - 'cell "Producto Stock Invalido-1779507705666-2p3tc ID: 0040" [ref=e1747]':
+                - paragraph [ref=e1748]: Producto Stock Invalido-1779507705666-2p3tc
+                - paragraph [ref=e1749]: "ID: 0040"
+              - cell "Categoria E2E-1779507705666-4732r" [ref=e1750]
+              - cell "$100.00" [ref=e1751]
+              - cell "20" [ref=e1752]:
+                - generic [ref=e1754]: "20"
+              - cell "CODE-1779507705695-dnwkp" [ref=e1755]
+              - cell [ref=e1756]:
+                - generic [ref=e1757]:
+                  - button [ref=e1758]:
+                    - img [ref=e1759]
+                  - button [ref=e1761]:
+                    - img [ref=e1762]
+            - 'row "Producto Stock Invalido-1779507827248-gbia9 ID: 0055 Categoria E2E-1779507827248-vspcw $100.00 20 CODE-1779507827275-r88p4" [ref=e1764]':
+              - 'cell "Producto Stock Invalido-1779507827248-gbia9 ID: 0055" [ref=e1765]':
+                - paragraph [ref=e1766]: Producto Stock Invalido-1779507827248-gbia9
+                - paragraph [ref=e1767]: "ID: 0055"
+              - cell "Categoria E2E-1779507827248-vspcw" [ref=e1768]
+              - cell "$100.00" [ref=e1769]
+              - cell "20" [ref=e1770]:
+                - generic [ref=e1772]: "20"
+              - cell "CODE-1779507827275-r88p4" [ref=e1773]
+              - cell [ref=e1774]:
+                - generic [ref=e1775]:
+                  - button [ref=e1776]:
+                    - img [ref=e1777]
+                  - button [ref=e1779]:
+                    - img [ref=e1780]
+            - 'row "Producto Stock Invalido-1779507950274-ddri7 ID: 0070 Categoria E2E-1779507950275-6vvmx $100.00 20 CODE-1779507950315-g3twd" [ref=e1782]':
+              - 'cell "Producto Stock Invalido-1779507950274-ddri7 ID: 0070" [ref=e1783]':
+                - paragraph [ref=e1784]: Producto Stock Invalido-1779507950274-ddri7
+                - paragraph [ref=e1785]: "ID: 0070"
+              - cell "Categoria E2E-1779507950275-6vvmx" [ref=e1786]
+              - cell "$100.00" [ref=e1787]
+              - cell "20" [ref=e1788]:
+                - generic [ref=e1790]: "20"
+              - cell "CODE-1779507950315-g3twd" [ref=e1791]
+              - cell [ref=e1792]:
+                - generic [ref=e1793]:
+                  - button [ref=e1794]:
+                    - img [ref=e1795]
+                  - button [ref=e1797]:
+                    - img [ref=e1798]
+            - 'row "Producto Stock Invalido-1779508139946-845vb ID: 0081 Categoria E2E-1779508139946-3t9jo $100.00 20 CODE-1779508139975-pegll" [ref=e1800]':
+              - 'cell "Producto Stock Invalido-1779508139946-845vb ID: 0081" [ref=e1801]':
+                - paragraph [ref=e1802]: Producto Stock Invalido-1779508139946-845vb
+                - paragraph [ref=e1803]: "ID: 0081"
+              - cell "Categoria E2E-1779508139946-3t9jo" [ref=e1804]
+              - cell "$100.00" [ref=e1805]
+              - cell "20" [ref=e1806]:
+                - generic [ref=e1808]: "20"
+              - cell "CODE-1779508139975-pegll" [ref=e1809]
+              - cell [ref=e1810]:
+                - generic [ref=e1811]:
+                  - button [ref=e1812]:
+                    - img [ref=e1813]
+                  - button [ref=e1815]:
+                    - img [ref=e1816]
+            - 'row "Producto Stock Invalido-1779508611364-rli06 ID: 0106 Categoria E2E-1779508611364-1t0bg $100.00 20 CODE-1779508611385-r5o2w" [ref=e1818]':
+              - 'cell "Producto Stock Invalido-1779508611364-rli06 ID: 0106" [ref=e1819]':
+                - paragraph [ref=e1820]: Producto Stock Invalido-1779508611364-rli06
+                - paragraph [ref=e1821]: "ID: 0106"
+              - cell "Categoria E2E-1779508611364-1t0bg" [ref=e1822]
+              - cell "$100.00" [ref=e1823]
+              - cell "20" [ref=e1824]:
+                - generic [ref=e1826]: "20"
+              - cell "CODE-1779508611385-r5o2w" [ref=e1827]
+              - cell [ref=e1828]:
+                - generic [ref=e1829]:
+                  - button [ref=e1830]:
+                    - img [ref=e1831]
+                  - button [ref=e1833]:
+                    - img [ref=e1834]
+            - 'row "Producto Stock Invalido-1779510020869-yn0j2 ID: 0120 Categoria E2E-1779510020869-svkum $100.00 20 CODE-1779510020894-vnjn9" [ref=e1836]':
+              - 'cell "Producto Stock Invalido-1779510020869-yn0j2 ID: 0120" [ref=e1837]':
+                - paragraph [ref=e1838]: Producto Stock Invalido-1779510020869-yn0j2
+                - paragraph [ref=e1839]: "ID: 0120"
+              - cell "Categoria E2E-1779510020869-svkum" [ref=e1840]
+              - cell "$100.00" [ref=e1841]
+              - cell "20" [ref=e1842]:
+                - generic [ref=e1844]: "20"
+              - cell "CODE-1779510020894-vnjn9" [ref=e1845]
+              - cell [ref=e1846]:
+                - generic [ref=e1847]:
+                  - button [ref=e1848]:
+                    - img [ref=e1849]
+                  - button [ref=e1851]:
+                    - img [ref=e1852]
+            - 'row "Producto Stock Minimo-1779507496609-znmie ID: 0015 Categoria E2E-1779507496609-2nczy $100.00 20 CODE-1779507496637-xqgx8" [ref=e1854]':
+              - 'cell "Producto Stock Minimo-1779507496609-znmie ID: 0015" [ref=e1855]':
+                - paragraph [ref=e1856]: Producto Stock Minimo-1779507496609-znmie
+                - paragraph [ref=e1857]: "ID: 0015"
+              - cell "Categoria E2E-1779507496609-2nczy" [ref=e1858]
+              - cell "$100.00" [ref=e1859]
+              - cell "20" [ref=e1860]:
+                - generic [ref=e1862]: "20"
+              - cell "CODE-1779507496637-xqgx8" [ref=e1863]
+              - cell [ref=e1864]:
+                - generic [ref=e1865]:
+                  - button [ref=e1866]:
+                    - img [ref=e1867]
+                  - button [ref=e1869]:
+                    - img [ref=e1870]
+            - 'row "Producto Stock Minimo-1779507593776-uon9l ID: 0026 Categoria E2E-1779507593776-265y3 $100.00 20 CODE-1779507593803-4we7m" [ref=e1872]':
+              - 'cell "Producto Stock Minimo-1779507593776-uon9l ID: 0026" [ref=e1873]':
+                - paragraph [ref=e1874]: Producto Stock Minimo-1779507593776-uon9l
+                - paragraph [ref=e1875]: "ID: 0026"
+              - cell "Categoria E2E-1779507593776-265y3" [ref=e1876]
+              - cell "$100.00" [ref=e1877]
+              - cell "20" [ref=e1878]:
+                - generic [ref=e1880]: "20"
+              - cell "CODE-1779507593803-4we7m" [ref=e1881]
+              - cell [ref=e1882]:
+                - generic [ref=e1883]:
+                  - button [ref=e1884]:
+                    - img [ref=e1885]
+                  - button [ref=e1887]:
+                    - img [ref=e1888]
+            - 'row "Producto Stock Minimo-1779507701487-5m8ir ID: 0039 Categoria E2E-1779507701487-cvjxi $100.00 20 CODE-1779507701524-pdahc" [ref=e1890]':
+              - 'cell "Producto Stock Minimo-1779507701487-5m8ir ID: 0039" [ref=e1891]':
+                - paragraph [ref=e1892]: Producto Stock Minimo-1779507701487-5m8ir
+                - paragraph [ref=e1893]: "ID: 0039"
+              - cell "Categoria E2E-1779507701487-cvjxi" [ref=e1894]
+              - cell "$100.00" [ref=e1895]
+              - cell "20" [ref=e1896]:
+                - generic [ref=e1898]: "20"
+              - cell "CODE-1779507701524-pdahc" [ref=e1899]
+              - cell [ref=e1900]:
+                - generic [ref=e1901]:
+                  - button [ref=e1902]:
+                    - img [ref=e1903]
+                  - button [ref=e1905]:
+                    - img [ref=e1906]
+            - 'row "Producto Stock Minimo-1779507822564-zopdz ID: 0054 Categoria E2E-1779507822564-sl0mj $100.00 20 CODE-1779507822598-s4j0n" [ref=e1908]':
+              - 'cell "Producto Stock Minimo-1779507822564-zopdz ID: 0054" [ref=e1909]':
+                - paragraph [ref=e1910]: Producto Stock Minimo-1779507822564-zopdz
+                - paragraph [ref=e1911]: "ID: 0054"
+              - cell "Categoria E2E-1779507822564-sl0mj" [ref=e1912]
+              - cell "$100.00" [ref=e1913]
+              - cell "20" [ref=e1914]:
+                - generic [ref=e1916]: "20"
+              - cell "CODE-1779507822598-s4j0n" [ref=e1917]
+              - cell [ref=e1918]:
+                - generic [ref=e1919]:
+                  - button [ref=e1920]:
+                    - img [ref=e1921]
+                  - button [ref=e1923]:
+                    - img [ref=e1924]
+```
+
+# Test source
+
+```ts
+  126 |     },
+  127 |   });
+  128 |   expect(response.ok(), await response.text()).toBeTruthy();
+  129 |   return response.json();
+  130 | }
+  131 | 
+  132 | export async function getProduct(request: APIRequestContext, token: string, productId: number): Promise<Product> {
+  133 |   const response = await request.get(`${API_URL}/api/v1/productos/${productId}`, {
+  134 |     headers: authHeaders(token),
+  135 |   });
+  136 |   expect(response.ok(), await response.text()).toBeTruthy();
+  137 |   return response.json();
+  138 | }
+  139 | 
+  140 | export async function ensureOpenShift(request: APIRequestContext, token: string) {
+  141 |   const opened = await request.post(`${API_URL}/api/v1/cortes/`, {
+  142 |     headers: authHeaders(token),
+  143 |   });
+  144 |   if (opened.status() === 201) return opened.json();
+  145 | 
+  146 |   const active = await request.get(`${API_URL}/api/v1/cortes/activo`, {
+  147 |     headers: authHeaders(token),
+  148 |   });
+  149 |   expect(active.ok(), `${await opened.text()}\n${await active.text()}`).toBeTruthy();
+  150 |   return active.json();
+  151 | }
+  152 | 
+  153 | export async function createSale(
+  154 |   request: APIRequestContext,
+  155 |   token: string,
+  156 |   productId: number,
+  157 |   quantity = 1,
+  158 | ) {
+  159 |   const response = await request.post(`${API_URL}/api/v1/ventas/`, {
+  160 |     headers: authHeaders(token),
+  161 |     data: {
+  162 |       metodo_pago: 'efectivo',
+  163 |       items: [{ id_producto: productId, cantidad: quantity }],
+  164 |     },
+  165 |   });
+  166 |   expect(response.ok(), await response.text()).toBeTruthy();
+  167 |   return response.json();
+  168 | }
+  169 | 
+  170 | export async function loginViaUI(page: Page, credentials: Credentials) {
+  171 |   await page.addInitScript(() => {
+  172 |     localStorage.clear();
+  173 |     sessionStorage.clear();
+  174 |   });
+  175 |   await page.goto(APP_URL);
+  176 |   await expect(page.locator('#email')).toBeVisible();
+  177 |   await page.locator('#email').fill(credentials.email);
+  178 |   await page.locator('#password').fill(credentials.password);
+  179 |   await page.locator('#btn-iniciar-sesion').click();
+  180 |   await expect(page.getByRole('heading', { name: /Bienvenido a STOKO/i })).toBeVisible({
+  181 |     timeout: 15_000,
+  182 |   });
+  183 | }
+  184 | 
+  185 | export async function navigateTo(page: Page, menuName: RegExp) {
+  186 |   await page.locator('aside').getByRole('button', { name: menuName }).click();
+  187 | }
+  188 | 
+  189 | export async function goToCatalog(page: Page) {
+  190 |   await navigateTo(page, /Cat.logo/i);
+  191 |   await expect(page.locator('#btn-nuevo-producto')).toBeVisible();
+  192 | }
+  193 | 
+  194 | export async function goToReports(page: Page) {
+  195 |   await navigateTo(page, /Reportes/i);
+  196 |   await expect(page.getByRole('heading', { name: /Reportes y Auditor.as/i })).toBeVisible();
+  197 | }
+  198 | 
+  199 | export function productRow(page: Page, productName: string): Locator {
+  200 |   return page.locator('tbody tr').filter({ hasText: productName }).first();
+  201 | }
+  202 | 
+  203 | export async function fillProductModal(
+  204 |   modal: Locator,
+  205 |   data: {
+  206 |     name?: string;
+  207 |     price?: string;
+  208 |     stock?: string;
+  209 |     minimumStock?: string;
+  210 |     code?: string;
+  211 |     categoryId?: number;
+  212 |   },
+  213 | ) {
+  214 |   const textInputs = modal.locator('input[type="text"]');
+  215 |   const numberInputs = modal.locator('input[type="number"]');
+  216 | 
+  217 |   if (data.name !== undefined) await textInputs.first().fill(data.name);
+  218 |   if (data.price !== undefined) await numberInputs.nth(0).fill(data.price);
+  219 |   if (data.stock !== undefined) await numberInputs.nth(1).fill(data.stock);
+  220 |   if (data.minimumStock !== undefined) await numberInputs.nth(2).fill(data.minimumStock);
+  221 |   if (data.code !== undefined) await textInputs.last().fill(data.code);
+  222 |   if (data.categoryId !== undefined) await modal.locator('select').selectOption(String(data.categoryId));
+  223 | }
+  224 | 
+  225 | export async function openProductEditor(page: Page, productName: string): Promise<Locator> {
+> 226 |   await productRow(page, productName).locator('button').first().click();
+      |                                                                 ^ Error: locator.click: Test timeout of 45000ms exceeded.
+  227 |   const modal = page.locator('.fixed').filter({ hasText: /Editar Producto/i }).last();
+  228 |   await expect(modal).toBeVisible();
+  229 |   return modal;
+  230 | }
+  231 | 
+  232 | export async function createProductViaUI(
+  233 |   page: Page,
+  234 |   product: { name: string; price: string; stock: string; minimumStock: string; code: string; categoryId: number },
+  235 | ) {
+  236 |   await page.locator('#btn-nuevo-producto').click();
+  237 |   const modal = page.locator('.fixed').filter({ hasText: /Producto/i }).last();
+  238 |   await expect(modal).toBeVisible();
+  239 |   await fillProductModal(modal, product);
+  240 |   await modal.getByRole('button', { name: /Guardar/i }).click();
+  241 |   await expect(productRow(page, product.name)).toBeVisible({ timeout: 10_000 });
+  242 | }
+  243 | 
+  244 | export async function addProductToCart(page: Page, product: Product) {
+  245 |   const search = page.getByPlaceholder(/Escanear c.digo/i);
+  246 |   await search.fill(product.nombre);
+  247 |   await expect(page.getByRole('button', { name: new RegExp(product.nombre, 'i') })).toBeVisible();
+  248 |   await page.getByRole('button', { name: new RegExp(product.nombre, 'i') }).click();
+  249 |   await expect(page.locator('table').filter({ hasText: product.nombre }).last()).toBeVisible();
+  250 | }
+  251 | 
+```
