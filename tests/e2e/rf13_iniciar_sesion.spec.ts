@@ -1,61 +1,31 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { ADMIN, APP_URL, loginViaUI } from './helpers';
 
-test.describe('RF13 - Iniciar Sesión', () => {
+test.describe('RF13 - Iniciar sesion', () => {
+  test('CP-13-01: Acceso exitoso con credenciales validas', async ({ page }) => {
+    await loginViaUI(page, ADMIN);
 
-  test.beforeEach(async ({ page }) => {
-    // CP-13 asume probar el inicio de sesión. 
-    // Navegaremos directamente a la ruta base o de login.
-    // Si la aplicación usa /login, cambiar correspondientemente.
-    await page.goto('/');
+    await expect(page.getByRole('heading', { name: /Bienvenido a STOKO/i })).toBeVisible();
+    await expect(page.getByText(/API conectada/i)).toBeVisible();
   });
 
-  test('CP-13-01: Acceso exitoso con credenciales válidas', async ({ page }) => {
-    // Si el usuario ya está autenticado en un estado global, esto podría requerir cerrar sesión primero.
-    // Asumiremos que la pantalla de inicio presenta el login si no hay sesión.
-    
-    // Si vemos el campo de correo, procedemos
-    const inputEmail = page.locator('#email').first();
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('admin@stoko.com'); // Correo válido del sistema
-      const inputPass = page.locator('#password').first();
-      await inputPass.fill('admin123'); // Contraseña válida
-      
-      const btnIngresar = page.locator('#btn-iniciar-sesion');
-      await btnIngresar.click();
+  test('CP-13-02: Deniega acceso por contrasena incorrecta', async ({ page }) => {
+    await page.goto(APP_URL);
+    await page.locator('#email').fill(ADMIN.email);
+    await page.locator('#password').fill('PasswordIncorrecta123');
+    await page.locator('#btn-iniciar-sesion').click();
 
-      // Validar que redirige al panel principal (Dashboard, Inventario, Hub)
-      await expect(page.locator('text=/Panel Principal/i, text=/Dashboard/i, text=/Catálogo/i').first()).toBeVisible();
-    }
+    await expect(page.getByText(/Contrase.a incorrecta/i)).toBeVisible();
+    await expect(page.locator('#email')).toBeVisible();
   });
 
-  test('CP-13-02: Denegar acceso por contraseña incorrecta', async ({ page }) => {
-    const inputEmail = page.locator('#email').first();
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('admin@stoko.com'); // Correo válido
-      const inputPass = page.locator('#password').first();
-      await inputPass.fill('ContraseñaIncorrecta99'); // Contraseña inválida
-      
-      const btnIngresar = page.locator('#btn-iniciar-sesion');
-      await btnIngresar.click();
+  test('CP-13-03: Deniega acceso por usuario no registrado', async ({ page }) => {
+    await page.goto(APP_URL);
+    await page.locator('#email').fill(`no-existe-${Date.now()}@stoko.test`);
+    await page.locator('#password').fill('CualquierClave123');
+    await page.locator('#btn-iniciar-sesion').click();
 
-      // Validar mensaje de error específico
-      await expect(page.locator('text=/Contraseña incorrecta/i').first()).toBeVisible();
-    }
+    await expect(page.getByText(/Usuario no registrado/i)).toBeVisible();
+    await expect(page.locator('#email')).toBeVisible();
   });
-
-  test('CP-13-03: Denegar acceso por usuario no registrado', async ({ page }) => {
-    const inputEmail = page.locator('#email').first();
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('usuario_falso_no_existe@stoko.com'); // Correo no registrado
-      const inputPass = page.locator('#password').first();
-      await inputPass.fill('CualquierClave123');
-      
-      const btnIngresar = page.locator('#btn-iniciar-sesion');
-      await btnIngresar.click();
-
-      // Validar mensaje de error específico
-      await expect(page.locator('text=/Usuario no registrado/i, text=/no encontrado/i').first()).toBeVisible();
-    }
-  });
-
 });

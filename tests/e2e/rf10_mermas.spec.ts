@@ -1,87 +1,67 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import {
+  createProduct,
+  createTestAdmin,
+  ensureOpenShift,
+  getProduct,
+  goToReports,
+  loginViaUI,
+  unique,
+} from './helpers';
 
-test.describe('RF10 - Registrar Mermas', () => {
+async function openMermas(page: Page) {
+  await goToReports(page);
+  await page.getByRole('button', { name: /Registro de Mermas/i }).click();
+  await expect(page.getByRole('heading', { name: /Nueva Merma/i })).toBeVisible();
+}
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    // Iniciar sesión si es necesario
-    const inputEmail = page.locator('#email');
-    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('admin@stoko.com');
-      await page.locator('#password').fill('admin1234');
-      await page.locator('#btn-iniciar-sesion').click();
-      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
-      // Esperar a que el texto del Dashboard esté visible
-      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
-    }
-    // Navegar al módulo de Mermas (Análisis de negocio / Registro de mermas)
-    const menuReportes = page.locator('text=Reportes').first();
-    if (await menuReportes.isVisible()) {
-      await menuReportes.click();
-    }
-    const tabMermas = page.locator('text=Registro de Mermas').first();
-    if (await tabMermas.isVisible()) {
-      await tabMermas.click();
-    }
+test.describe('RF10 - Registrar mermas', () => {
+  test('CP-10-01: Registra una merma valida y descuenta stock', async ({ page, request }) => {
+    const admin = await createTestAdmin(request);
+    const product = await createProduct(request, admin.token, {
+      nombre: unique('Producto Merma'),
+      stock_actual: 8,
+    });
+    await ensureOpenShift(request, admin.token);
+
+    await loginViaUI(page, admin);
+    await openMermas(page);
+
+    await page.getByPlaceholder(/Buscar por nombre o c.digo/i).fill(product.nombre);
+    await page.getByRole('button', { name: new RegExp(product.nombre, 'i') }).click();
+    await page.getByPlaceholder(/Ej. 5/i).fill('2');
+    await page.getByPlaceholder(/Describa el motivo/i).fill('Producto danado en prueba E2E');
+    await page.getByRole('button', { name: /Registrar Merma/i }).click();
+
+    await expect(page.getByText(/Merma registrada/i)).toBeVisible();
+    await expect(page.locator('tbody tr').filter({ hasText: product.nombre }).first()).toBeVisible();
+    const updated = await getProduct(request, admin.token, product.id_producto);
+    expect(updated.stock_actual).toBe(6);
   });
 
-  test('CP-10-01: Registrar merma con datos válidos', async ({ page }) => {
-    // Abrir formulario o sección de "Registrar merma"
-    const btnRegistrarMerma = page.getByRole('button', { name: /Registrar/i }).first();
-    if (await btnRegistrarMerma.isVisible()) {
-      await btnRegistrarMerma.click();
-    }
+  test('CP-10-02: Rechaza datos invalidos al registrar merma', async ({ page, request }) => {
+    const admin = await createTestAdmin(request);
+    const product = await createProduct(request, admin.token, {
+      nombre: unique('Producto Merma Invalida'),
+      stock_actual: 8,
+    });
+    await ensureOpenShift(request, admin.token);
 
-    // Llenar datos de la merma
-    const inputProducto = page.getByPlaceholder(/Escanear código/i).first();
-    if (await inputProducto.isVisible()) {
-      await inputProducto.fill('Producto Test');
-      await page.waitForTimeout(500);
-      await inputProducto.press('Enter');
-    }
+    await loginViaUI(page, admin);
+    await openMermas(page);
 
-    // Ingresar cantidad
-    const inputCantidad = page.locator('input[type="number"], input[name="cantidad"]').first();
-    await inputCantidad.fill('2');
+    await page.getByPlaceholder(/Buscar por nombre o c.digo/i).fill(product.nombre);
+    await page.getByRole('button', { name: new RegExp(product.nombre, 'i') }).click();
+    const quantity = page.getByPlaceholder(/Ej. 5/i);
+    await quantity.fill('-1');
+    await page.getByPlaceholder(/Describa el motivo/i).fill('Dato invalido de prueba');
 
-    // Ingresar causa
-    const inputCausa = page.locator('textarea, input[name="causa"]').first();
-    await inputCausa.fill('Producto caducado / dañado');
+    expect(await quantity.evaluate((element: HTMLInputElement) => element.checkValidity())).toBe(false);
+    await page.getByRole('button', { name: /Registrar Merma/i }).click();
+    await expect(page.getByRole('heading', { name: /Nueva Merma/i })).toBeVisible();
 
-    // Guardar merma
-    const btnGuardar = page.getByRole('button', { name: /Guardar/i, exact: false }).first();
-    await expect(btnGuardar).toBeEnabled();
-    await btnGuardar.click();
-
-    // Validar notificación de éxito y registro en el historial
-    await expect(page.locator('text=/registrada correctamente/i, text=/éxito/i').first()).toBeVisible();
+    const unchanged = await getProduct(request, admin.token, product.id_producto);
+    expect(unchanged.stock_actual).toBe(8);
   });
-
-  test('CP-10-02: Prevención de registro con datos inválidos', async ({ page }) => {
-    const btnRegistrarMerma = page.getByRole('button', { name: /Registrar/i }).first();
-    if (await btnRegistrarMerma.isVisible()) {
-      await btnRegistrarMerma.click();
-    }
-
-    // Llenar campos con errores, ej. cantidad vacía o negativa
-    const inputCantidad = page.locator('input[type="number"], input[name="cantidad"]').first();
-    await inputCantidad.fill('-5');
-
-    // El botón debería estar deshabilitado o mostrar error al hacer clic
-    const btnGuardar = page.getByRole('button', { name: /Guardar/i, exact: false }).first();
-    
-    // Verificamos si el botón está deshabilitado
-    const estaDeshabilitado = await btnGuardar.isDisabled();
-    
-    if (!estaDeshabilitado) {
-      await btnGuardar.click();
-      // Si permite click, debe mostrar validación debajo de los campos
-      const msjError = page.locator('text=/invalido/i, text=/no puede ser negativo/i, text=/requerido/i').first();
-      await expect(msjError).toBeVisible();
-    } else {
-      expect(estaDeshabilitado).toBeTruthy();
-    }
-  });
-
 });

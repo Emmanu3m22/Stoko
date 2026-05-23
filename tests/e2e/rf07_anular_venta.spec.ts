@@ -1,65 +1,41 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import {
+  createProduct,
+  createSale,
+  createTestAdmin,
+  ensureOpenShift,
+  getProduct,
+  goToReports,
+  loginViaUI,
+  navigateTo,
+  unique,
+} from './helpers';
 
-test.describe('RF07 - Anular Venta', () => {
+test.describe('RF07 - Anular venta', () => {
+  test('CP-07-01/02: Anula una venta y restaura el inventario', async ({ page, request }) => {
+    const admin = await createTestAdmin(request);
+    const product = await createProduct(request, admin.token, {
+      nombre: unique('Producto Anulacion'),
+      stock_actual: 10,
+    });
+    await ensureOpenShift(request, admin.token);
+    const sale = await createSale(request, admin.token, product.id_producto, 2);
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    // Iniciar sesión si es necesario
-    const inputEmail = page.locator('#email');
-    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('admin@stoko.com');
-      await page.locator('#password').fill('admin1234');
-      await page.locator('#btn-iniciar-sesion').click();
-      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
-      // Esperar a que el texto del Dashboard esté visible
-      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
-    }
-    // Ir al historial de ventas o reportes
-    const menuHistorial = page.locator('text=/Historial/i').first().or(page.locator('text=/Reportes/i').first());
-    if (await menuHistorial.isVisible()) {
-      await menuHistorial.click();
-    }
+    await loginViaUI(page, admin);
+    await navigateTo(page, /M.dulo de Ventas/i);
+    await page.getByRole('button', { name: /Historial de ventas/i }).click();
+
+    const row = page.locator('tbody tr').filter({ hasText: `#${String(sale.id_venta).padStart(5, '0')}` }).first();
+    await expect(row).toBeVisible();
+    page.once('dialog', (dialog) => dialog.accept());
+    await row.getByRole('button', { name: /Anular/i }).click();
+    await expect(row).toContainText(/Anulada/i);
+
+    const restored = await getProduct(request, admin.token, product.id_producto);
+    expect(restored.stock_actual).toBe(10);
+
+    await goToReports(page);
+    await page.getByRole('button', { name: /Historial de Operaciones/i }).click();
+    await expect(page.locator('tbody tr').filter({ hasText: /anular venta/i }).first()).toBeVisible();
   });
-
-  test('CP-07-01: Localizar venta y solicitar confirmación de anulación', async ({ page }) => {
-    // Localizar una fila de venta registrada
-    const filaVenta = page.locator('table tbody tr').first();
-    await expect(filaVenta).toBeVisible();
-
-    // Hacer clic en el botón de anular/cancelar venta
-    const btnAnular = filaVenta.locator('button', { hasText: 'Anular' }).first();
-    await btnAnular.click();
-
-    // Validar que se solicita confirmación
-    const modalConfirmacion = page.locator('text=/¿Seguro que deseas anular/i, text=/Confirmar anulación/i').first();
-    await expect(modalConfirmacion).toBeVisible();
-
-    // Confirmar la anulación
-    await page.getByRole('button', { name: /Confirmar/i, exact: false }).click();
-
-    // Validar que la venta se marca como anulada (ej: cambio de estado en la tabla)
-    await expect(filaVenta.locator('text=/Anulada/i, text=/Cancelada/i').first()).toBeVisible();
-  });
-
-  test('CP-07-02: Verificar restauración de inventario e historial', async ({ page }) => {
-    // Este test podría requerir verificar el stock de un producto antes y después.
-    // Como E2E, navegaremos al inventario para validarlo o confiaremos en el mensaje de éxito que asegura la transacción.
-    
-    // Verificamos que al anular aparezca notificación de éxito indicando restauración
-    const notificacion = page.locator('text=/Venta anulada correctamente/i, text=/Inventario restaurado/i').first();
-    // Si la notificación se configuró para mostrar este mensaje
-    if (await notificacion.isVisible()) {
-      await expect(notificacion).toBeVisible();
-    }
-
-    // Opcionalmente, ir al log de auditoría/historial para ver el movimiento
-    const tabAuditoria = page.locator('text=/Auditor/i').first();
-    if (await tabAuditoria.isVisible()) {
-      await tabAuditoria.click();
-      const logAnulacion = page.locator('table tbody tr').first();
-      await expect(logAnulacion).toContainText(/Anulación de venta/i);
-    }
-  });
-
 });

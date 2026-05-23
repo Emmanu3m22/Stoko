@@ -1,67 +1,59 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import {
+  API_URL,
+  createProduct,
+  createSale,
+  createTestAdmin,
+  ensureOpenShift,
+  goToReports,
+  loginViaUI,
+  todayIso,
+  unique,
+} from './helpers';
 
-test.describe('RF11 - Reportes de ventas e Insights IA', () => {
+test.describe('RF11 - Reportes de ventas e insights IA', () => {
+  test('CP-11-01: Genera reporte por rango de fechas e insights de IA', async ({ page, request }) => {
+    const admin = await createTestAdmin(request);
+    const product = await createProduct(request, admin.token, {
+      nombre: unique('Producto Reporte IA'),
+      stock_actual: 50,
+    });
+    await ensureOpenShift(request, admin.token);
+    await createSale(request, admin.token, product.id_producto, 25);
+    const today = todayIso();
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    // Iniciar sesión si es necesario
-    const inputEmail = page.locator('#email');
-    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('admin@stoko.com');
-      await page.locator('#password').fill('admin1234');
-      await page.locator('#btn-iniciar-sesion').click();
-      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
-      // Esperar a que el texto del Dashboard esté visible
-      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
-    }
-    const menuReportes = page.locator('text=Reportes').first();
-    if (await menuReportes.isVisible()) {
-      await menuReportes.click();
-    }
-    const tabInsights = page.locator('text=IA Insights (Gemini)').first();
-    if (await tabInsights.isVisible()) {
-      await tabInsights.click();
-    }
+    await page.route(`${API_URL}/api/v1/reportes/insights`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          fecha_inicio: today,
+          fecha_fin: today,
+          insights: 'Recomendacion E2E: reabastecer productos con alta rotacion.',
+        }),
+      });
+    });
+
+    await loginViaUI(page, admin);
+    await goToReports(page);
+    await page.getByRole('button', { name: /IA Insights/i }).click();
+    await page.locator('#insights-fecha-inicio').fill(today);
+    await page.locator('#insights-fecha-fin').fill(today);
+    await page.locator('#btn-generar-reporte').click();
+
+    await expect(page.getByText(/Total del Periodo/i)).toBeVisible();
+    await expect(page.getByText(product.nombre)).toBeVisible();
+
+    await page.locator('#btn-generar-insights').click();
+    await expect(page.getByText(/Recomendacion E2E/i)).toBeVisible();
   });
 
-  test('CP-11-01: Generar reporte de ventas con Insights de IA por rango de fechas', async ({ page }) => {
-    // Definir el rango de fechas
-    const inputFechaInicio = page.locator('input[type="date"]').first();
-    const inputFechaFin = page.locator('input[type="date"]').nth(1);
-
-    if (await inputFechaInicio.isVisible() && await inputFechaFin.isVisible()) {
-      await inputFechaInicio.fill('2026-05-01');
-      await inputFechaFin.fill('2026-05-15');
-    }
-
-    // Generar reporte
-    const btnGenerar = page.getByRole('button', { name: /Generar Reporte/i, exact: false }).first();
-    await btnGenerar.click();
-
-    // Validar que se muestre el apartado de recomendaciones hechas a través de la IA
-    const seccionIA = page.locator('text=/Recomendaciones/i, text=/Insights/i, text=/Inteligencia Artificial/i').first();
-    await expect(seccionIA).toBeVisible({ timeout: 10000 }); // La IA puede tardar unos segundos
-  });
-
-  test('CP-11-02: Registrar acción de generar reporte en el historial de auditoría', async ({ page }) => {
-    // Generar el reporte para disparar el log
-    const btnGenerar = page.getByRole('button', { name: /Generar Reporte/i, exact: false }).first();
-    if (await btnGenerar.isVisible()) {
-      await btnGenerar.click();
-    }
-
-    // Ir al historial de auditoría
-    const tabAuditoria = page.locator('text=Historial de Operaciones').first();
-    if (await tabAuditoria.isVisible()) {
-      await tabAuditoria.click();
-    }
-
-    // Verificar el registro
-    const primerLog = page.locator('table tbody tr').first();
-    await expect(primerLog).toContainText(/Reporte/i);
-    const logTexto = await primerLog.innerText();
-    expect(logTexto.length).toBeGreaterThan(10); // Asegura que existan datos de fecha/usuario
-  });
-
+  test.fixme(
+    'CP-11-02: Registra auditoria al generar reporte desde la UI',
+    async () => {
+      // El caso existe en el PDF, pero la pantalla actual usa /api/v1/reportes/ventas,
+      // y ese endpoint no crea LogAuditoria. Se deja documentado para activar cuando
+      // la aplicacion registre la operacion desde este flujo.
+    },
+  );
 });

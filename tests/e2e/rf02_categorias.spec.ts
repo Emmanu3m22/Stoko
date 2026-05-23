@@ -1,66 +1,46 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { createTestAdmin, goToCatalog, loginViaUI, unique } from './helpers';
 
-test.describe('RF02 - Organización por categorías', () => {
+test.describe('RF02 - Organizacion por categorias', () => {
+  test('CP-02-01: Crea y modifica una categoria con nombre valido', async ({ page, request }) => {
+    const admin = await createTestAdmin(request);
+    const categoryName = unique('Categoria CP02');
+    const updatedName = `${categoryName} Editada`;
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    
-    // Iniciar sesión
-    const inputEmail = page.locator('#email').first();
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('admin@stoko.com');
-      const inputPass = page.locator('#password').first();
-      await inputPass.fill('admin1234');
-      await page.locator('#btn-iniciar-sesion').click();
-      await page.waitForTimeout(1000);
-    }
-    
-    const menuInventario = page.locator('text=Catálogo').first();
-    if (await menuInventario.isVisible()) {
-      await menuInventario.click();
-    }
+    await loginViaUI(page, admin);
+    await goToCatalog(page);
+    await page.getByRole('button', { name: /Categor.as/i }).click();
+    await page.getByRole('button', { name: /Nueva Categor.a/i }).click();
+
+    const modal = page.locator('.fixed').filter({ hasText: /Nueva Categor.a/i }).last();
+    await modal.getByPlaceholder(/Ej:/i).fill(categoryName);
+    await modal.getByRole('button', { name: /Crear/i }).click();
+
+    const row = page.locator('tbody tr').filter({ hasText: categoryName }).first();
+    await expect(row).toBeVisible();
+
+    await row.locator('button').first().click();
+    const editModal = page.locator('.fixed').filter({ hasText: /Editar Categor.a/i }).last();
+    await editModal.getByPlaceholder(/Ej:/i).fill(updatedName);
+    await editModal.getByRole('button', { name: /Guardar/i }).click();
+
+    await expect(page.locator('tbody tr').filter({ hasText: updatedName }).first()).toBeVisible();
   });
 
-  test('CP-02-01: Crear y modificar categoría con nombre válido', async ({ page }) => {
-    // 1. Acceder al módulo "Catálogo" y seleccionar "Categorías"
-    await page.getByRole('button', { name: /Categorías/i }).click();
+  test('CP-02-02: Rechaza una categoria con nombre vacio', async ({ page, request }) => {
+    const admin = await createTestAdmin(request);
 
-    // Crear categoría
-    await page.getByRole('button', { name: /Nueva Categoría/i }).click();
-    
-    const nombreCategoria = `Cat Test ${Date.now()}`;
-    await page.getByPlaceholder('Ej: Electrónica, Calzado...').fill(nombreCategoria);
-    await page.getByRole('button', { name: 'Crear' }).click();
+    await loginViaUI(page, admin);
+    await goToCatalog(page);
+    await page.getByRole('button', { name: /Categor.as/i }).click();
+    await page.getByRole('button', { name: /Nueva Categor.a/i }).click();
 
-    // Validar que se guarda y organiza en el listado
-    await expect(page.locator('table', { hasText: nombreCategoria })).toBeVisible();
+    const modal = page.locator('.fixed').filter({ hasText: /Nueva Categor.a/i }).last();
+    const input = modal.getByPlaceholder(/Ej:/i);
+    await input.fill('');
+    await modal.getByRole('button', { name: /Crear/i }).click();
 
-    // Modificar categoría
-    const filaCat = page.locator('tr', { hasText: nombreCategoria });
-    await filaCat.locator('button').first().click(); // Asume que el primer botón es editar
-    
-    const nombreModificado = `${nombreCategoria} Mod`;
-    await page.getByPlaceholder('Ej: Electrónica, Calzado...').fill(nombreModificado);
-    await page.getByRole('button', { name: 'Guardar' }).click();
-
-    // Validar el cambio
-    await expect(page.locator('table', { hasText: nombreModificado })).toBeVisible();
-  });
-
-  test('CP-02-02: No permite crear categoría con nombre inválido', async ({ page }) => {
-    await page.getByRole('button', { name: /Categorías/i }).click();
-
-    await page.getByRole('button', { name: /Nueva Categoría/i }).click();
-    
-    // Intenta enviar con nombre vacío (inválido por 'required' de HTML5)
-    await page.getByPlaceholder('Ej: Electrónica, Calzado...').fill('');
-    
-    // Al dar clic en el botón de tipo 'submit' dentro de un form con 'required'
-    // el navegador bloquea el envío, y el modal se mantiene abierto.
-    await page.getByRole('button', { name: 'Crear' }).click();
-
-    // Verificar que el modal sigue visible y muestra un error o estado de validación
-    const modalVisible = await page.getByRole('heading', { name: 'Nueva Categoría' }).isVisible();
-    expect(modalVisible).toBeTruthy();
+    await expect(modal).toBeVisible();
+    expect(await input.evaluate((element: HTMLInputElement) => element.checkValidity())).toBe(false);
   });
 });

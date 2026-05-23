@@ -1,60 +1,37 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import {
+  createProduct,
+  createSale,
+  createTestAdmin,
+  ensureOpenShift,
+  goToReports,
+  loginViaUI,
+  unique,
+} from './helpers';
 
-test.describe('RF08 - Generar Cortes de Caja', () => {
+test.describe('RF08 - Generar cortes de caja', () => {
+  test('CP-08-01/02: Cierra el turno con desglose y registra auditoria', async ({ page, request }) => {
+    const admin = await createTestAdmin(request);
+    const product = await createProduct(request, admin.token, {
+      nombre: unique('Producto Corte'),
+      precio_unitario: 200,
+      stock_actual: 4,
+    });
+    await ensureOpenShift(request, admin.token);
+    const sale = await createSale(request, admin.token, product.id_producto, 1);
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    // Iniciar sesión si es necesario
-    const inputEmail = page.locator('#email');
-    await inputEmail.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-    if (await inputEmail.isVisible()) {
-      await inputEmail.fill('admin@stoko.com');
-      await page.locator('#password').fill('admin1234');
-      await page.locator('#btn-iniciar-sesion').click();
-      await page.waitForURL('**/', { timeout: 5000 }).catch(() => {});
-      // Esperar a que el texto del Dashboard esté visible
-      await expect(page.locator('text=Bienvenido a STOKO').first()).toBeVisible({ timeout: 10000 }).catch(() => {});
-    }
-    // Ir a la sección de Reportes o Auditorías
-    const menuReportes = page.locator('text=/Reportes/i, text=/Auditorías/i').first();
-    if (await menuReportes.isVisible()) {
-      await menuReportes.click();
-    }
+    await loginViaUI(page, admin);
+    await goToReports(page);
+
+    await expect(page.getByText(/Ventas Totales del Turno/i)).toBeVisible();
+    await expect(page.locator('div').filter({ hasText: /Efectivo/ }).filter({ hasText: '$232.00' }).first()).toBeVisible();
+    await page.getByPlaceholder('0.00').fill(String(sale.total));
+    await page.getByRole('button', { name: /Realizar Corte Ahora/i }).click();
+
+    await expect(page.getByText(/Turno cerrado/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /No hay turno activo/i })).toBeVisible();
+
+    await page.getByRole('button', { name: /Historial de Operaciones/i }).click();
+    await expect(page.locator('tbody tr').filter({ hasText: /cerrar corte/i }).first()).toBeVisible();
   });
-
-  test('CP-08-01: Generar reporte de corte de caja con desglose', async ({ page }) => {
-    // Localizar botón de generar corte
-    const btnGenerarCorte = page.getByRole('button', { name: /Realizar Corte Ahora/i }).or(page.locator('text=Realizar Corte Ahora').first());
-    await btnGenerarCorte.click();
-
-    // Validar que se muestra el reporte (modal, vista nueva, o descarga)
-    // Asumimos que se genera en pantalla un resumen antes de confirmar o un PDF
-    const desgloseCorte = page.locator('text=/Desglose/i, text=/Total Ventas/i, text=/Mermas/i').first();
-    await expect(desgloseCorte).toBeVisible();
-
-    // Confirmar generación si es necesario
-    const btnConfirmar = page.getByRole('button', { name: /Confirmar Corte/i, exact: false }).first();
-    if (await btnConfirmar.isVisible()) {
-      await btnConfirmar.click();
-    }
-    
-    // Validar mensaje de éxito
-    await expect(page.locator('text=/Corte generado exitosamente/i, text=/Guardado/i').first()).toBeVisible();
-  });
-
-  test('CP-08-02: Verificar el registro del corte en el historial de auditoría', async ({ page }) => {
-    // Ir a la pestaña o sección de historial/auditoría si no está activa
-    const tabHistorial = page.locator('text=/Historial de Operaciones/i, text=/Bitácora/i').first();
-    if (await tabHistorial.isVisible()) {
-      await tabHistorial.click();
-    }
-
-    // Comprobar la primera fila del historial
-    const primeraFila = page.locator('table tbody tr').first();
-    await expect(primeraFila).toContainText(/corte/i);
-    // Valida que contenga un usuario y fecha (comprobando que la fila tiene contenido)
-    const textoFila = await primeraFila.innerText();
-    expect(textoFila.length).toBeGreaterThan(10); 
-  });
-
 });
