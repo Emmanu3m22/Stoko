@@ -29,12 +29,14 @@ venv.bak/
 
 # Pytest / Coverage
 .pytest_cache/
+backend/.pytest_tmp/
 .coverage
 htmlcov/
 
 # Database
 *.sqlite3
 *.db
+backend/stoko.db
 
 # ========================
 # Frontend (React + Vite)

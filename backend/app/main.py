@@ -7,6 +7,7 @@ datos iniciales (roles, admin, productos de ejemplo) en el primer arranque.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from app.database import engine, SessionLocal
 from app import models
@@ -17,8 +18,11 @@ from app.models import (
     Venta, DetalleVenta, CorteCaja, Incidencia, LogAuditoria
 )
 
-# Crear todas las tablas 
-models.Base.metadata.create_all(bind=engine)
+SKIP_STARTUP_DB = os.getenv("STOKO_SKIP_STARTUP_DB") == "1"
+
+# Crear todas las tablas
+if not SKIP_STARTUP_DB:
+    models.Base.metadata.create_all(bind=engine)
 
 # Crear la aplicación
 app = FastAPI(
@@ -168,5 +172,6 @@ def _seed_database():
         db.close()
 
 
-# Ejecutar seed al iniciar 
-_seed_database()
+# Ejecutar seed al iniciar
+if not SKIP_STARTUP_DB:
+    _seed_database()

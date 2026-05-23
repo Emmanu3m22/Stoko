@@ -10,3 +10,4 @@ aiosqlite
 google-genai
 reportlab
 openpyxl
+pytest
