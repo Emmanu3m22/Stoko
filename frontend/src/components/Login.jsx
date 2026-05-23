@@ -1,16 +1,42 @@
-import { useState } from 'react';
-import { iniciarSesion, mensajeErrorApi } from '../lib/api';
-
-// Credenciales reales (sembradas en el primer arranque)
-const DEMO_EMAIL    = 'admin@stoko.com';
-const DEMO_PASSWORD = 'admin1234';
+import { useEffect, useState } from 'react';
+import {
+  crearAdminInicial,
+  iniciarSesion,
+  mensajeErrorApi,
+  obtenerEstadoSetupInicial,
+} from '../lib/api';
 
 export default function Login({ onLoginExitoso }) {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [nombreAdmin, setNombreAdmin] = useState('');
+  const [confirmarPassword, setConfirmarPassword] = useState('');
   const [cargando, setCargando] = useState(false);
   const [error, setError]       = useState('');
   const [verPass, setVerPass]   = useState(false);
+  const [verificandoSetup, setVerificandoSetup] = useState(true);
+  const [requiereSetup, setRequiereSetup] = useState(false);
+
+  useEffect(() => {
+    let activo = true;
+
+    obtenerEstadoSetupInicial()
+      .then((data) => {
+        if (!activo) return;
+        setRequiereSetup(Boolean(data.requiere_configuracion));
+      })
+      .catch((err) => {
+        if (!activo) return;
+        setError(mensajeErrorApi(err, 'No se pudo verificar la configuración inicial.'));
+      })
+      .finally(() => {
+        if (activo) setVerificandoSetup(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,20 +44,26 @@ export default function Login({ onLoginExitoso }) {
     setCargando(true);
 
     try {
-      const sesion = await iniciarSesion(email.trim(), password);
+      let sesion;
+      if (requiereSetup) {
+        if (password !== confirmarPassword) {
+          setError('Las contraseñas no coinciden.');
+          return;
+        }
+        sesion = await crearAdminInicial({
+          nombre: nombreAdmin.trim(),
+          email: email.trim(),
+          password,
+        });
+      } else {
+        sesion = await iniciarSesion(email.trim(), password);
+      }
       onLoginExitoso?.(sesion);
     } catch (err) {
       setError(mensajeErrorApi(err, 'No se pudo iniciar sesión.'));
     } finally {
       setCargando(false);
     }
-  };
-
-  // Rellena los campos con las credenciales de demo
-  const usarDemo = () => {
-    setEmail(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
-    setError('');
   };
 
   return (
@@ -97,15 +129,35 @@ export default function Login({ onLoginExitoso }) {
               Portal Operativo
             </p>
             <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">
-              Bienvenido de nuevo
+              {requiereSetup ? 'Configura el administrador' : 'Bienvenido de nuevo'}
             </h2>
             <p className="text-gray-500 text-sm">
-              Ingresa tus credenciales para acceder al sistema.
+              {requiereSetup
+                ? 'Crea la primera cuenta para usar esta instalación local.'
+                : 'Ingresa tus credenciales para acceder al sistema.'}
             </p>
           </div>
 
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-5">
+            {requiereSetup && (
+              <div>
+                <label htmlFor="nombre-admin" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Nombre del administrador
+                </label>
+                <input
+                  id="nombre-admin"
+                  type="text"
+                  required
+                  autoComplete="name"
+                  value={nombreAdmin}
+                  onChange={(e) => { setNombreAdmin(e.target.value); setError(''); }}
+                  placeholder="Administrador"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
+                />
+              </div>
+            )}
 
             {/* Email */}
             <div>
@@ -119,7 +171,7 @@ export default function Login({ onLoginExitoso }) {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                placeholder="admin@stoko.com"
+                placeholder="correo@negocio.com"
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm
                            focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
               />
@@ -143,7 +195,8 @@ export default function Login({ onLoginExitoso }) {
                   id="password"
                   type={verPass ? 'text' : 'password'}
                   required
-                  autoComplete="current-password"
+                  minLength={requiereSetup ? 8 : undefined}
+                  autoComplete={requiereSetup ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(''); }}
                   placeholder="••••••••"
@@ -170,8 +223,29 @@ export default function Login({ onLoginExitoso }) {
               </div>
             </div>
 
+            {requiereSetup && (
+              <div>
+                <label htmlFor="confirmar-password" className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  Confirmar contraseña
+                </label>
+                <input
+                  id="confirmar-password"
+                  type={verPass ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={confirmarPassword}
+                  onChange={(e) => { setConfirmarPassword(e.target.value); setError(''); }}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-[#4169E1]/40 focus:border-[#4169E1] transition-all duration-150"
+                />
+              </div>
+            )}
+
             {/* Recordarme */}
-            <div className="flex items-center gap-2">
+            {!requiereSetup && (
+              <div className="flex items-center gap-2">
               <input
                 type="checkbox"
                 id="remember"
@@ -180,7 +254,8 @@ export default function Login({ onLoginExitoso }) {
               <label htmlFor="remember" className="text-sm text-gray-600 select-none">
                 Mantener sesión iniciada por 30 días
               </label>
-            </div>
+              </div>
+            )}
 
             {/* Mensaje de error */}
             {error && (
@@ -196,19 +271,21 @@ export default function Login({ onLoginExitoso }) {
             <button
               id="btn-iniciar-sesion"
               type="submit"
-              disabled={cargando}
+              disabled={cargando || verificandoSetup}
               className="w-full bg-[#4169E1] hover:bg-[#3155c7] active:scale-[0.98] disabled:opacity-70
                          text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200
                          transition-all duration-150 flex justify-center items-center gap-2 text-sm"
             >
-              {cargando ? (
+              {cargando || verificandoSetup ? (
                 <>
                   <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
-                  Verificando credenciales…
+                  {verificandoSetup ? 'Verificando instalación…' : 'Procesando…'}
                 </>
+              ) : requiereSetup ? (
+                'Crear administrador'
               ) : (
                 <>
                   Iniciar Sesión
@@ -220,35 +297,15 @@ export default function Login({ onLoginExitoso }) {
             </button>
           </form>
 
-          {/* Divisor */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400 font-medium">o continúa con</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          {/* Acceso demo — para la presentación */}
-          <button
-            type="button"
-            id="btn-demo"
-            onClick={usarDemo}
-            className="w-full flex items-center justify-center gap-2 border border-gray-200 hover:border-[#4169E1]/50
-                       hover:bg-blue-50/50 text-gray-600 hover:text-[#4169E1] font-medium py-3 rounded-xl
-                       transition-all duration-150 text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            Usar credenciales de demostración
-          </button>
-
           {/* Footer */}
-          <p className="mt-8 text-center text-xs text-gray-400">
+          {!requiereSetup && (
+            <p className="mt-8 text-center text-xs text-gray-400">
             ¿No tienes cuenta?{' '}
             <button className="text-[#4169E1] font-semibold hover:underline">
               Solicitar acceso al administrador
             </button>
-          </p>
+            </p>
+          )}
         </div>
       </div>
     </div>

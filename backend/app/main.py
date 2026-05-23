@@ -79,11 +79,8 @@ def _seed_database():
     """
     Siembra datos iniciales si la BD está vacía:
     - Roles: administrador, cajero
-    - Usuario admin por defecto
     - Categorías y productos de ejemplo
     """
-    from app.core.security import hash_password
-
     db = SessionLocal()
     try:
         # Roles 
@@ -96,19 +93,8 @@ def _seed_database():
             db.commit()
             print("[Seed] Roles creados: administrador, cajero")
 
-        # Usuario administrador
         if db.query(Usuario).count() == 0:
-            rol_admin = db.query(Rol).filter(Rol.nombre == "administrador").first()
-            admin = Usuario(
-                nombre="Administrador Stoko",
-                email="admin@stoko.com",
-                password=hash_password("admin1234"),
-                id_rol=rol_admin.id_rol,
-                activo=True,
-            )
-            db.add(admin)
-            db.commit()
-            print("[Seed] Usuario admin creado → email: admin@stoko.com | pass: admin1234")
+            print("[Seed] Sin usuarios: crea el administrador inicial desde la app.")
 
         # Categorías
         if db.query(Categoria).count() == 0:

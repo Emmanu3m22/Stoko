@@ -11,11 +11,80 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas
-from app.core.security import verify_password, create_access_token
+from app.core.security import verify_password, create_access_token, hash_password
 from app.core.deps import get_current_user
 from app.services import auditoria_service
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Autenticación"])
+
+
+def _asegurar_roles_base(db: Session) -> models.Rol:
+    roles_existentes = {
+        rol.nombre.lower(): rol
+        for rol in db.query(models.Rol).filter(models.Rol.nombre.in_(["administrador", "cajero"])).all()
+    }
+
+    for nombre in ["administrador", "cajero"]:
+        if nombre not in roles_existentes:
+            rol = models.Rol(nombre=nombre)
+            db.add(rol)
+            db.flush()
+            roles_existentes[nombre] = rol
+
+    return roles_existentes["administrador"]
+
+
+def _crear_respuesta_token(usuario: models.Usuario) -> schemas.TokenResponse:
+    token = create_access_token(data={"sub": str(usuario.id_usuario)})
+    return schemas.TokenResponse(
+        access_token=token,
+        token_type="bearer",
+        usuario_id=usuario.id_usuario,
+        nombre=usuario.nombre,
+        rol=usuario.rol.nombre,
+    )
+
+
+@router.get("/setup", response_model=schemas.SetupInicialStatus)
+def estado_setup_inicial(db: Session = Depends(get_db)):
+    """Indica si esta instalación todavía necesita crear el primer administrador."""
+    return schemas.SetupInicialStatus(
+        requiere_configuracion=db.query(models.Usuario).count() == 0,
+    )
+
+
+@router.post("/setup", response_model=schemas.TokenResponse, status_code=status.HTTP_201_CREATED)
+def crear_setup_inicial(
+    datos: schemas.SetupInicialCreate,
+    db: Session = Depends(get_db),
+):
+    """Crea el primer administrador de una instalación local nueva."""
+    if db.query(models.Usuario).count() > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="La instalación ya tiene usuarios configurados.",
+        )
+
+    rol_admin = _asegurar_roles_base(db)
+    usuario = models.Usuario(
+        nombre=datos.nombre.strip(),
+        email=str(datos.email).strip().lower(),
+        password=hash_password(datos.password),
+        id_rol=rol_admin.id_rol,
+        activo=True,
+    )
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+
+    auditoria_service.registrar(
+        db,
+        operacion="setup_inicial",
+        detalles=f"Administrador inicial creado: {usuario.email}",
+        id_usuario=usuario.id_usuario,
+    )
+
+    return _crear_respuesta_token(usuario)
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
@@ -47,8 +116,6 @@ def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = create_access_token(data={"sub": str(usuario.id_usuario)})
-
     # Log de auditoría
     auditoria_service.registrar(
         db,
@@ -57,13 +124,7 @@ def login(
         id_usuario=usuario.id_usuario,
     )
 
-    return schemas.TokenResponse(
-        access_token=token,
-        token_type="bearer",
-        usuario_id=usuario.id_usuario,
-        nombre=usuario.nombre,
-        rol=usuario.rol.nombre,
-    )
+    return _crear_respuesta_token(usuario)
 
 
 @router.get("/me", response_model=schemas.UsuarioResponse)

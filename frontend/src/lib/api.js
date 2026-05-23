@@ -131,6 +131,39 @@ export async function iniciarSesion(email, password) {
   return sesion;
 }
 
+export async function obtenerEstadoSetupInicial() {
+  let res;
+  try {
+    res = await fetch(apiUrl('/api/v1/auth/setup'));
+  } catch (error) {
+    throw normalizarErrorFetch(error);
+  }
+
+  return leerRespuestaApi(res, 'No se pudo verificar la configuración inicial.');
+}
+
+export async function crearAdminInicial({ nombre, email, password }) {
+  let res;
+  try {
+    res = await fetch(apiUrl('/api/v1/auth/setup'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, email, password }),
+    });
+  } catch (error) {
+    throw normalizarErrorFetch(error);
+  }
+
+  const data = await leerRespuestaApi(res, 'No se pudo crear el administrador inicial.');
+  const sesion = crearSesion(data.access_token, {
+    id: data.usuario_id,
+    nombre: data.nombre,
+    rol: data.rol,
+  });
+  guardarSesion(sesion);
+  return sesion;
+}
+
 export async function apiFetch(path, options = {}, sesion = obtenerSesion()) {
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && options.body) {

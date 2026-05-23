@@ -19,22 +19,67 @@ const {
   MENSAJE_ERROR_RED,
   apiUrl,
   apiFetch,
+  crearAdminInicial,
   iniciarSesion,
   leerRespuestaApi,
   mensajeErrorApi,
+  obtenerEstadoSetupInicial,
+  obtenerSesion,
 } = await import('../src/lib/api.js');
+
+const segmento = (valor) => Buffer.from(JSON.stringify(valor)).toString('base64url');
+const token = (payload) => `${segmento({ alg: 'none', typ: 'JWT' })}.${segmento(payload)}.firma`;
+const tokenSetup = token({ sub: '1', exp: Math.floor(Date.now() / 1000) + 3600 });
 
 assert.equal(apiUrl('/api/v1/salud'), 'http://localhost:8000/api/v1/salud');
 window.STOKO_API_URL = 'http://127.0.0.1:49152/';
 assert.equal(apiUrl('/api/v1/salud'), 'http://127.0.0.1:49152/api/v1/salud');
 delete window.STOKO_API_URL;
 
+globalThis.fetch = async (url, options = {}) => {
+  if (url === 'http://localhost:8000/api/v1/auth/setup' && !options.method) {
+    return new Response(JSON.stringify({ requiere_configuracion: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (url === 'http://localhost:8000/api/v1/auth/setup' && options.method === 'POST') {
+    const body = JSON.parse(options.body);
+    assert.equal(body.nombre, 'Admin Local');
+    assert.equal(body.email, 'admin@local.test');
+    assert.equal(body.password, 'password123');
+
+    return new Response(JSON.stringify({
+      access_token: tokenSetup,
+      token_type: 'bearer',
+      usuario_id: 1,
+      nombre: 'Admin Local',
+      rol: 'administrador',
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  throw new Error(`URL inesperada: ${url}`);
+};
+
+assert.deepEqual(await obtenerEstadoSetupInicial(), { requiere_configuracion: true });
+const sesionSetup = await crearAdminInicial({
+  nombre: 'Admin Local',
+  email: 'admin@local.test',
+  password: 'password123',
+});
+assert.equal(sesionSetup.usuario.nombre, 'Admin Local');
+assert.equal(obtenerSesion().token, tokenSetup);
+
 globalThis.fetch = async () => {
   throw new TypeError('Failed to fetch');
 };
 
 await assert.rejects(
-  () => iniciarSesion('admin@stoko.com', 'admin1234'),
+  () => iniciarSesion('usuario@negocio.com', 'password123'),
   (error) => {
     assert.equal(error instanceof ApiError, true);
     assert.equal(error.code, 'NETWORK_ERROR');
