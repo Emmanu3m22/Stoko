@@ -3,7 +3,7 @@ import ListaProductos from './ListaProductos';
 import RegistroVenta from './RegistroVenta';
 import ReportesAuditorias from './ReportesAuditorias';
 import Configuracion from './Configuracion';
-import { authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
+import { API_HOST_LABEL, authFetch, leerRespuestaApi, mensajeErrorApi } from '../lib/api';
 import {
   VENTAS_OFFLINE_EVENT,
   contarVentasPendientes,
@@ -538,7 +538,7 @@ export default function HubPrincipal({ sesion, onLogout }) {
             )}
             <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              API conectada · localhost:8000
+              API conectada · {API_HOST_LABEL}
             </div>
           </div>
         </header>

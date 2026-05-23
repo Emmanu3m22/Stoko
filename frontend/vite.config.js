@@ -2,6 +2,22 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import process from 'node:process'
+
+const apiCacheOrigins = Array.from(new Set([
+  'http://localhost:8000',
+  'http://127.0.0.1:8000',
+  process.env.VITE_API_URL,
+]
+  .filter(Boolean)
+  .map((apiUrl) => {
+    try {
+      return new URL(apiUrl).origin
+    } catch {
+      return null
+    }
+  })
+  .filter(Boolean)))
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -44,7 +60,7 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
-              ['http://localhost:8000', 'http://127.0.0.1:8000'].includes(url.origin) &&
+              apiCacheOrigins.includes(url.origin) &&
               (url.pathname.startsWith('/api/v1/productos') || url.pathname.startsWith('/api/v1/ventas')),
             handler: 'NetworkFirst',
             method: 'GET',

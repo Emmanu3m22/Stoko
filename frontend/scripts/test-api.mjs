@@ -17,11 +17,17 @@ globalThis.window = {
 const {
   ApiError,
   MENSAJE_ERROR_RED,
+  apiUrl,
   apiFetch,
   iniciarSesion,
   leerRespuestaApi,
   mensajeErrorApi,
 } = await import('../src/lib/api.js');
+
+assert.equal(apiUrl('/api/v1/salud'), 'http://localhost:8000/api/v1/salud');
+window.STOKO_API_URL = 'http://127.0.0.1:49152/';
+assert.equal(apiUrl('/api/v1/salud'), 'http://127.0.0.1:49152/api/v1/salud');
+delete window.STOKO_API_URL;
 
 globalThis.fetch = async () => {
   throw new TypeError('Failed to fetch');

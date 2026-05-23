@@ -6,9 +6,26 @@ import {
   obtenerSesion,
 } from '../auth.js';
 
-export const API_URL = 'http://localhost:8000';
+export const API_URL_DEFAULT = 'http://localhost:8000';
 export const MENSAJE_ERROR_RED = 'No se pudo conectar con el servidor. Verifica tu conexión y que el backend esté encendido.';
 export const MENSAJE_ERROR_GENERAL = 'No se pudo completar la operación.';
+
+function normalizarApiBase(value) {
+  const base = String(value || '').trim();
+  if (!base) return API_URL_DEFAULT;
+  if (base === '/') return '';
+  return base.replace(/\/+$/, '');
+}
+
+export function obtenerApiBase() {
+  const runtimeUrl = typeof window !== 'undefined' ? window.STOKO_API_URL : null;
+  return normalizarApiBase(runtimeUrl || import.meta.env?.VITE_API_URL || API_URL_DEFAULT);
+}
+
+export const API_URL = obtenerApiBase();
+export const API_HOST_LABEL = obtenerApiBase()
+  ? obtenerApiBase().replace(/^https?:\/\//i, '')
+  : 'mismo origen';
 
 export class ApiError extends Error {
   constructor(message, { status = null, detail = null, code = null } = {}) {
@@ -26,7 +43,7 @@ export const limpiarSesion = cerrarSesion;
 
 export function apiUrl(path) {
   if (/^https?:\/\//i.test(path)) return path;
-  return `${API_URL}${path}`;
+  return `${obtenerApiBase()}${path}`;
 }
 
 function normalizarDetalle(detalle) {
