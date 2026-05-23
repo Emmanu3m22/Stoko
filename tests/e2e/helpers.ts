@@ -200,6 +200,14 @@ export function productRow(page: Page, productName: string): Locator {
   return page.locator('tbody tr').filter({ hasText: productName }).first();
 }
 
+export async function findProductInCatalog(page: Page, productName: string): Promise<Locator> {
+  const search = page.getByPlaceholder(/Buscar por nombre o c.digo/i);
+  await search.fill(productName);
+  const row = productRow(page, productName);
+  await expect(row).toBeVisible({ timeout: 10_000 });
+  return row;
+}
+
 export async function fillProductModal(
   modal: Locator,
   data: {
@@ -223,7 +231,8 @@ export async function fillProductModal(
 }
 
 export async function openProductEditor(page: Page, productName: string): Promise<Locator> {
-  await productRow(page, productName).locator('button').first().click();
+  const row = await findProductInCatalog(page, productName);
+  await row.locator('button').first().click();
   const modal = page.locator('.fixed').filter({ hasText: /Editar Producto/i }).last();
   await expect(modal).toBeVisible();
   return modal;

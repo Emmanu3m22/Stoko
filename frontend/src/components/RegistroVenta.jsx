@@ -26,17 +26,39 @@ export default function RegistroVenta({
   const [abriendo, setAbriendo] = useState(false);
   const [vista, setVista] = useState('venta');
   const inputRef = useRef(null);
+  const ultimaBusquedaRef = useRef('');
 
   // ── Búsqueda de productos ──────────────────────────────────────────────────
-  const handleBusqueda = (valor) => {
+  const normalizarProducto = (producto) => ({
+    ...producto,
+    id: producto.id ?? producto.id_producto,
+  });
+
+  const handleBusqueda = async (valor) => {
+    ultimaBusquedaRef.current = valor;
     setBusqueda(valor);
     if (!valor.trim()) { setSugerencias([]); return; }
     const q = valor.toLowerCase();
-    setSugerencias(
-      productos.filter(
+    const sugerenciasLocales = productos.filter(
         (p) => p.nombre.toLowerCase().includes(q) || p.codigo_barras.toLowerCase().includes(q)
-      ).slice(0, 5)
-    );
+    ).slice(0, 5);
+
+    if (sugerenciasLocales.length > 0) {
+      setSugerencias(sugerenciasLocales);
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({ busqueda: valor, limit: '5' });
+      const res = await authFetch(`/api/v1/productos/?${params.toString()}`, sesion);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (ultimaBusquedaRef.current === valor) {
+        setSugerencias(data.map(normalizarProducto));
+      }
+    } catch {
+      setSugerencias([]);
+    }
   };
 
   // ── Simulación Escáner (Enter) ─────────────────────────────────────────────

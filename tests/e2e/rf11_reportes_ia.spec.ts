@@ -16,10 +16,10 @@ test.describe('RF11 - Reportes de ventas e insights IA', () => {
     const admin = await createTestAdmin(request);
     const product = await createProduct(request, admin.token, {
       nombre: unique('Producto Reporte IA'),
-      stock_actual: 50,
+      stock_actual: 2000,
     });
     await ensureOpenShift(request, admin.token);
-    await createSale(request, admin.token, product.id_producto, 25);
+    await createSale(request, admin.token, product.id_producto, 1000);
     const today = todayIso();
 
     await page.route(`${API_URL}/api/v1/reportes/insights`, async (route) => {

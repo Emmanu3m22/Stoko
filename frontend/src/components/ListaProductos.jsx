@@ -66,7 +66,7 @@ export default function ListaProductos({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [busqueda, categoriaSeleccionada, soloStockBajo, sesion]);
+  }, [busqueda, categoriaSeleccionada, soloStockBajo, sesion, productos]);
   
   // Estado para las ventanas modales
   const [mostrarModal, setMostrarModal] = useState(false);
