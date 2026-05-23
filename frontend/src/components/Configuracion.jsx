@@ -28,6 +28,7 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
   const [guardandoIA, setGuardandoIA] = useState(false);
   const [probandoIA, setProbandoIA] = useState(false);
   const [mensajeIA, setMensajeIA] = useState(null);
+  const [descargandoRespaldo, setDescargandoRespaldo] = useState(false);
 
   // Estados para el formulario
   const [nuevoNombre, setNuevoNombre] = useState('');
@@ -308,6 +309,31 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
     }
   };
 
+  const descargarRespaldo = async () => {
+    setDescargandoRespaldo(true);
+    try {
+      const res = await authFetch('/api/v1/sistema/respaldo', sesion);
+      if (!res.ok) {
+        await leerRespuestaApi(res, 'No se pudo generar el respaldo.');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stoko_respaldo_${new Date().toISOString().slice(0, 19).replaceAll(':', '-')}.db`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      mostrarNotificacion('Respaldo descargado correctamente.');
+    } catch (err) {
+      mostrarNotificacion(mensajeErrorApi(err, 'No se pudo generar el respaldo.'), 'error');
+    } finally {
+      setDescargandoRespaldo(false);
+    }
+  };
+
   if (!esAdministrador) {
     return (
       <div className="p-8 w-full min-h-screen font-sans">
@@ -346,6 +372,12 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
             className={`font-semibold pb-2 ${pestaña === 'ia' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
           >
             Inteligencia Artificial
+          </button>
+          <button
+            onClick={() => setPestaña('sistema')}
+            className={`font-semibold pb-2 ${pestaña === 'sistema' ? 'text-[#4169E1] border-b-2 border-[#4169E1]' : 'text-gray-500'}`}
+          >
+            Sistema
           </button>
 
         </div>
@@ -607,6 +639,35 @@ export default function Configuracion({ sesion, mostrarNotificacion }) {
             </div>
           )}
         </form>
+      )}
+
+      {pestaña === 'sistema' && (
+        <div className="max-w-2xl bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <div className="mb-6">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
+              Instalación local
+            </p>
+            <h2 className="text-xl font-bold text-gray-900">Respaldo de datos</h2>
+            <p className="text-sm text-gray-500 mt-2">
+              Descarga una copia consistente de la base SQLite de esta instalación.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-5">
+            <p className="text-sm font-semibold text-amber-800">
+              Guarda este archivo en una ubicación externa si vas a mover, reinstalar o actualizar la app.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={descargarRespaldo}
+            disabled={descargandoRespaldo}
+            className="px-5 py-2 bg-[#4169E1] text-white rounded-xl font-bold hover:bg-[#3155c7] text-sm disabled:opacity-60"
+          >
+            {descargandoRespaldo ? 'Generando respaldo...' : 'Descargar respaldo'}
+          </button>
+        </div>
       )}
 
 
