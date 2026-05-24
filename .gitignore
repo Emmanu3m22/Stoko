@@ -37,6 +37,7 @@ htmlcov/
 *.sqlite3
 *.db
 .stoko/
+backend/stoko.db
 backend/build/
 backend/dist/
 backend/*.spec
