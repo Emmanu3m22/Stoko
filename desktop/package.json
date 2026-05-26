@@ -35,6 +35,10 @@
       {
         "from": "../backend/dist/stoko-backend",
         "to": "backend"
+      },
+      {
+        "from": "../backend/stoko.db",
+        "to": "seed/stoko.db"
       }
     ],
     "asarUnpack": [

@@ -32,6 +32,30 @@ function resolveBackendExecutable() {
   return null;
 }
 
+function resolveSeedDatabasePath() {
+  if (process.env.STOKO_SEED_DB_PATH) return process.env.STOKO_SEED_DB_PATH;
+
+  const packagedSeed = path.join(process.resourcesPath, 'seed', 'stoko.db');
+  if (!isDev && fs.existsSync(packagedSeed)) return packagedSeed;
+
+  const devSeed = path.join(projectRoot, 'backend', 'stoko.db');
+  if (fs.existsSync(devSeed)) return devSeed;
+
+  return null;
+}
+
+function prepareDatabase(userData) {
+  const dbPath = process.env.STOKO_DB_PATH || path.join(userData, 'stoko.db');
+  const seedPath = resolveSeedDatabasePath();
+
+  if (!fs.existsSync(dbPath) && seedPath && fs.existsSync(seedPath)) {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    fs.copyFileSync(seedPath, dbPath);
+  }
+
+  return dbPath;
+}
+
 function resolvePythonCommand(backendDir) {
   if (process.env.STOKO_PYTHON) return process.env.STOKO_PYTHON;
 
@@ -104,6 +128,7 @@ async function startBackend() {
     throw new Error('No se encontró backend empaquetado ni intérprete Python para iniciar la API local.');
   }
   const userData = app.getPath('userData');
+  const dbPath = prepareDatabase(userData);
   const port = Number(process.env.STOKO_API_PORT) || await findFreePort();
   apiUrl = `http://127.0.0.1:${port}`;
 
@@ -126,7 +151,7 @@ async function startBackend() {
         ...process.env,
         STOKO_API_HOST: '127.0.0.1',
         STOKO_API_PORT: String(port),
-        STOKO_DB_PATH: process.env.STOKO_DB_PATH || path.join(userData, 'stoko.db'),
+        STOKO_DB_PATH: dbPath,
         STOKO_CONFIG_DIR: process.env.STOKO_CONFIG_DIR || userData,
       },
       stdio: isDev ? 'inherit' : 'ignore',
